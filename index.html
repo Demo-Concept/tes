@@ -880,6 +880,10 @@
                                 <i class="ph-bold ph-download-simple text-sm md:text-base"></i>
                                 Download Report
                             </button>
+                            <button onclick="exportExecutiveReportDetail()" class="justify-center bg-gradient-to-r from-accentCyan to-blue-500 hover:from-blue-400 hover:to-accentCyan text-bgPrimary font-bold px-3 md:px-5 py-1.5 md:py-2 rounded-md md:rounded-lg transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs transform hover:scale-105 active:scale-95 h-auto sm:h-[34px] whitespace-nowrap mt-2 sm:mt-0">
+                                <i class="ph-bold ph-table text-sm md:text-base"></i>
+                                Download Detail
+                            </button>
                         </div>
                     </div>
                     <div class="flex-1 overflow-auto bg-bgPrimary/30 w-full">
@@ -1548,15 +1552,36 @@
             transactionRawData.headers = cleanedHeaders;
             transactionRawData.rows = validTransRows;
 
+            // Resolve kolom berdasarkan NAMA HEADER, bukan posisi kolom tetap.
+            // Ini penting karena struktur DATA dapat berubah/bertambah kolom dan sebelumnya
+            // menyebabkan Type/SKU/Qty terbaca dari kolom yang salah sehingga IN/OUT = 0.
+            const normHeader = h => String(h || '').toLowerCase().replace(/[\n\r]+/g,' ').replace(/[_\-]+/g,' ').replace(/\s+/g,' ').trim();
+            const headerIndex = (patterns, fallback=-1) => {
+                const pats = patterns.map(x => x.toLowerCase());
+                let idx = cleanedHeaders.findIndex(h => pats.some(p => normHeader(h) === p));
+                if (idx >= 0) return idx;
+                idx = cleanedHeaders.findIndex(h => pats.some(p => normHeader(h).includes(p)));
+                return idx >= 0 ? idx : fallback;
+            };
+            // SHEET DATA: gunakan posisi kolom yang sudah ditetapkan user:
+            // B = Tanggal, C = Type, I = Qty (ZAK), J = SKU.
+            // Jangan mengandalkan nama header karena report harus mengikuti struktur DATA ini.
+            const idxDate = 1;   // Column B - Tanggal
+            const idxType = 2;   // Column C - Type
+            const idxZak  = 8;   // Column I - Qty (ZAK)
+            const idxSku  = 9;   // Column J - SKU
+            const idxSeg = headerIndex(['segment','segmen'], 0);
+            const idxProd = headerIndex(['produk','product','product name','nama produk'], 3);
+            const idxTon = headerIndex(['qty ton','qty (ton)','quantity ton','jumlah ton','ton'], -1);
+
             validTransRows.forEach(r => {
-                let rowTimestamp = r[0] !== undefined ? r[0] : '';
-                let rowSeg = r[1] !== undefined && r[1] !== '' ? r[1] : 'GENERAL';
-                let rowType = r[2] !== undefined && r[2] !== '' ? r[2] : 'STANDARD';
-                let rowProd = r[3] !== undefined ? r[3] : '-';
-                
-                let rowZak = r[8] !== undefined ? r[8] : 0;
-                let rowTon = r[9] !== undefined ? r[9] : 0;
-                let rowProjDel = r[r.length - 1] !== undefined ? r[r.length - 1] : '-';
+                let rowTimestamp = idxDate >= 0 && r[idxDate] !== undefined ? r[idxDate] : '';
+                let rowSeg = idxSeg >= 0 && r[idxSeg] !== undefined && r[idxSeg] !== '' ? r[idxSeg] : 'GENERAL';
+                let rowType = idxType >= 0 && r[idxType] !== undefined && r[idxType] !== '' ? r[idxType] : 'STANDARD';
+                let rowProd = idxProd >= 0 && r[idxProd] !== undefined ? r[idxProd] : '-';
+                let rowZak = idxZak >= 0 && r[idxZak] !== undefined ? r[idxZak] : 0;
+                let rowTon = idxTon >= 0 && r[idxTon] !== undefined ? r[idxTon] : 0;
+                let rowProjDel = idxSku >= 0 && r[idxSku] !== undefined && r[idxSku] !== '' ? r[idxSku] : (r[r.length - 1] !== undefined ? r[r.length - 1] : '-');
 
                 let trDateObj = new Date(NaN);
                 if (rowTimestamp && rowTimestamp.toString().trim() !== '') {
@@ -1678,83 +1703,148 @@
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         }
 
+        function normalizeTransactionType(type) {
+            return String(type || '')
+                .toUpperCase()
+                .trim()
+                .replace(/[._-]+/g, ' ')
+                .replace(/\s+/g, ' ');
+        }
+
         function isProductionTransaction(type) {
-            const t = String(type || '').toUpperCase().trim();
-            return t.includes('OUTPUT') || t.includes('PRODUKSI') || t.includes('PRODUCTION') || t.includes('IN') || t.includes('MASUK');
+            const t = normalizeTransactionType(type);
+            return t === 'OUTPUT PRODUKSI' || t === 'OUTPUT PRODUKSI FG' || t === 'OUTPUT PRODUCTION' || t === 'OUTPUT PRODUCTION FG';
         }
 
         function isDeliveryTransaction(type) {
-            const t = String(type || '').toUpperCase().trim();
-            return t.includes('DELIVERY') || t.includes('DELIVER') || t.includes('OUT') || t.includes('KELUAR') || t.includes('OFFTAKE') || t.includes('KIRIM');
+            const t = normalizeTransactionType(type);
+            return t === 'DELIVERY' || t === 'DELIVERY OUT' || t === 'DELIVERY FG';
+        }
+
+        function normalizeSku(v) {
+            return String(v || '').trim().toUpperCase().replace(/\s+/g, ' ');
+        }
+
+        function parseTransactionDateValue(value) {
+            if (value === null || value === undefined || String(value).trim() === '') return null;
+            const str = String(value).trim();
+            const m = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:\s+(\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?)?/);
+            if (m) {
+                const a = parseInt(m[1],10), b = parseInt(m[2],10), y = parseInt(m[3],10);
+                const h = parseInt(m[4] || '0',10), mi = parseInt(m[5] || '0',10), sec = parseInt(m[6] || '0',10);
+                if (a > 12) return new Date(y, b-1, a, h, mi, sec);
+                if (b > 12) return new Date(y, a-1, b, h, mi, sec);
+                return new Date(y, b-1, a, h, mi, sec);
+            }
+            const d = new Date(str);
+            return isNaN(d.getTime()) ? null : d;
         }
 
         function generateExecReportData() {
             const selectedKey = getExecSelectedDateKey();
-            const selectedDate = new Date(`${selectedKey}T00:00:00`);
-            const isToday = selectedKey === getTransactionDateKey(new Date());
-
-            // Aggregate transaksi per SKU + segment pada tanggal yang dipilih.
+            const todayKey = getTransactionDateKey(new Date());
+            const isToday = selectedKey === todayKey;
             const movement = {};
+
+            // Executive Report mengambil movement LANGSUNG dari sheet DATA.
+            // Output Produksi = positif (+), Delivery = negatif (-).
             (transactionRecords || []).forEach(rec => {
-                if (!rec?.dateObj || isNaN(rec.dateObj.getTime())) return;
-                if (getTransactionDateKey(rec.dateObj) !== selectedKey) return;
+                if (!rec) return;
 
-                const sku = String(rec.produk || '').trim();
+                // Fallback: bila parser header DATA tidak menemukan Type/Date/Qty dengan tepat,
+                // cari nilai transaksi langsung dari seluruh row DATA.
+                let type = normalizeTransactionType(rec.type);
+                let dateObj = rec.dateObj;
+                const row = Array.isArray(rec.originalRow) ? rec.originalRow : [];
+
+                if (!isProductionTransaction(type) && !isDeliveryTransaction(type)) {
+                    const hit = row.find(v => {
+                        const t = normalizeTransactionType(v);
+                        return isProductionTransaction(t) || isDeliveryTransaction(t);
+                    });
+                    if (hit) type = normalizeTransactionType(hit);
+                }
+
+                if ((!dateObj || isNaN(dateObj.getTime())) && row.length) {
+                    for (const cell of row) {
+                        const d = parseTransactionDateValue(cell);
+                        if (d) { dateObj = d; break; }
+                    }
+                }
+                if (!dateObj || isNaN(dateObj.getTime())) return;
+                if (getTransactionDateKey(dateObj) !== selectedKey) return;
+
+                // SHEET DATA: J = SKU, I = Qty (ZAK). Gunakan posisi kolom ini secara langsung.
+                let sku = normalizeSku(row[9] !== undefined ? row[9] : rec.projectDelivery);
                 if (!sku || sku === '-') return;
-                const segment = String(rec.segment || 'GENERAL').trim() || 'GENERAL';
-                const key = `${segment}|||${sku}`;
-                if (!movement[key]) movement[key] = { outputZak: 0, deliveryZak: 0, outputTon: 0, deliveryTon: 0 };
 
-                const zak = cleanNum(rec.zak);
-                const ton = cleanNum(rec.ton) || (zak * 40 / 1000);
-                if (isProductionTransaction(rec.type)) {
-                    movement[key].outputZak += zak;
-                    movement[key].outputTon += ton;
-                } else if (isDeliveryTransaction(rec.type)) {
-                    movement[key].deliveryZak += zak;
-                    movement[key].deliveryTon += ton;
+                let zak = Math.abs(cleanNum(row[8] !== undefined ? row[8] : rec.zak));
+                if (!zak) return;
+                let ton = cleanNum(rec.ton);
+                if (!ton) ton = zak * 40 / 1000;
+
+                if (isProductionTransaction(type)) {
+                    if (!movement[sku]) movement[sku] = { outputZak: 0, deliveryZak: 0, outputTon: 0, deliveryTon: 0 };
+                    movement[sku].outputZak += Math.abs(zak);
+                    movement[sku].outputTon += Math.abs(ton);
+                } else if (isDeliveryTransaction(type)) {
+                    if (!movement[sku]) movement[sku] = { outputZak: 0, deliveryZak: 0, outputTon: 0, deliveryTon: 0 };
+                    movement[sku].deliveryZak -= Math.abs(zak);
+                    movement[sku].deliveryTon -= Math.abs(ton);
                 }
             });
 
             execReportData = summaryData.map(item => {
-                const key = `${item.segment}|||${item.sku}`;
-                const mv = movement[key] || { outputZak: 0, deliveryZak: 0, outputTon: 0, deliveryTon: 0 };
-
-                // Current summaryData merupakan posisi stok terkini. Untuk tanggal hari ini,
-                // opening = stok saat ini - output hari ini + delivery hari ini.
-                // Balance = opening + output - delivery, sehingga kembali ke stok berjalan.
+                const skuKey = normalizeSku(item.sku);
+                const mv = movement[skuKey] || { outputZak: 0, deliveryZak: 0, outputTon: 0, deliveryTon: 0 };
                 const currentZak = cleanNum(item.qtyZak);
                 const currentTon = cleanNum(item.qtyTon);
-                const openingZak = isToday ? Math.max(0, currentZak - mv.outputZak + mv.deliveryZak) : currentZak;
-                const openingTon = isToday ? Math.max(0, currentTon - mv.outputTon + mv.deliveryTon) : currentTon;
-                const balanceZak = openingZak + mv.outputZak - mv.deliveryZak;
-                const balanceTon = openingTon + mv.outputTon - mv.deliveryTon;
+
+                // Hari ini: Opening = stok sekarang - net movement hari ini.
+                // Balance = Opening + Output Produksi + Delivery.
+                const netZak = mv.outputZak + mv.deliveryZak;
+                const netTon = mv.outputTon + mv.deliveryTon;
+                const openingZak = isToday ? currentZak - netZak : currentZak;
+                const openingTon = isToday ? currentTon - netTon : currentTon;
+                const balanceZak = openingZak + mv.outputZak + mv.deliveryZak;
+                const balanceTon = openingTon + mv.outputTon + mv.deliveryTon;
 
                 return {
                     ...item,
-                    openingZak, openingTon,
-                    outputZak: mv.outputZak, outputTon: mv.outputTon,
-                    deliveryZak: mv.deliveryZak, deliveryTon: mv.deliveryTon,
-                    balanceZak, balanceTon,
-                    // Tetap dipertahankan untuk kompatibilitas fungsi export lama.
+                    openingZak: Math.max(0, openingZak),
+                    openingTon: Math.max(0, openingTon),
+                    outputZak: mv.outputZak,
+                    outputTon: mv.outputTon,
+                    deliveryZak: mv.deliveryZak,
+                    deliveryTon: mv.deliveryTon,
+                    balanceZak,
+                    balanceTon,
                     stokIn: mv.outputZak,
                     stokOut: mv.deliveryZak
                 };
             });
 
-            // Jika tanggal dipilih bukan hari ini, tampilkan pergerakan aktual pada tanggal tersebut
-            // tetapi tidak mengubah stok master/current balance.
-            if (!isToday) {
-                execReportData = execReportData.map(item => ({
-                    ...item,
-                    openingZak: item.qtyZak,
-                    openingTon: item.qtyTon,
-                    balanceZak: item.qtyZak + item.outputZak - item.deliveryZak,
-                    balanceTon: item.qtyTon + item.outputTon - item.deliveryTon
-                }));
-            }
+            const masterSkuSet = new Set(summaryData.map(x => normalizeSku(x.sku)));
+            Object.keys(movement).forEach(skuKey => {
+                if (masterSkuSet.has(skuKey)) return;
+                const mv = movement[skuKey];
+                const weight = 40;
+                const netZak = mv.outputZak + mv.deliveryZak;
+                const netTon = mv.outputTon + mv.deliveryTon;
+                execReportData.push({
+                    segment: 'GENERAL', sku: skuKey, weight,
+                    qtyZak: 0, qtyTon: 0,
+                    openingZak: isToday ? -netZak : 0,
+                    openingTon: isToday ? -netTon : 0,
+                    outputZak: mv.outputZak, outputTon: mv.outputTon,
+                    deliveryZak: mv.deliveryZak, deliveryTon: mv.deliveryTon,
+                    balanceZak: isToday ? 0 : netZak,
+                    balanceTon: isToday ? 0 : netTon,
+                    stokIn: mv.outputZak, stokOut: mv.deliveryZak
+                });
+            });
         }
-        
+
         window.updateExecInput = function(segment, sku, field, value) {
             const item = execReportData.find(i => i.segment === segment && i.sku === sku);
             if (item) item[field] = value ? parseInt(value, 10) : 0;
@@ -2013,7 +2103,7 @@
             let html = '', currentSegment = '';
             sortedData.forEach(item => {
                 if(item.segment !== currentSegment) { html += `<tr class="bg-[#1c2e50] border-y border-borderMain"><td colspan="8" class="px-3 md:px-5 py-1.5 md:py-2 font-bold text-white text-[9px] md:text-[10px] tracking-widest uppercase"><i class="ph-bold ph-caret-down mr-1 text-textSecondary"></i> ${item.segment}</td></tr>`; currentSegment = item.segment; }
-                html += `<tr class="table-row-hover border-b border-borderMain/30 text-textSecondary transition-colors"><td class="px-3 md:px-5 py-1.5 md:py-2 pl-6 md:pl-8 font-medium border-r border-borderMain/30 text-[10px] md:text-xs">${item.segment}</td><td class="px-3 md:px-5 py-1.5 md:py-2 font-bold text-white border-r border-borderMain/30 text-[10px] md:text-xs">${item.sku}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-[10px] md:text-xs">${fmtNum(item.weight)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-textSecondary text-[10px] md:text-xs">${fmtNum(item.openingZak)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-statusSuccess font-bold text-[10px] md:text-xs">+${fmtNum(item.outputZak)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-statusDanger font-bold text-[10px] md:text-xs">-${fmtNum(item.deliveryZak)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-accentCyan font-bold text-[10px] md:text-xs">${fmtNum(item.balanceZak)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right font-bold text-white text-[10px] md:text-xs">${fmtDec(item.balanceTon)}</td></tr>`;
+                html += `<tr class="table-row-hover border-b border-borderMain/30 text-textSecondary transition-colors"><td class="px-3 md:px-5 py-1.5 md:py-2 pl-6 md:pl-8 font-medium border-r border-borderMain/30 text-[10px] md:text-xs">${item.segment}</td><td class="px-3 md:px-5 py-1.5 md:py-2 font-bold text-white border-r border-borderMain/30 text-[10px] md:text-xs">${item.sku}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-[10px] md:text-xs">${fmtNum(item.weight)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-textSecondary text-[10px] md:text-xs">${fmtNum(item.openingZak)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-statusSuccess font-bold text-[10px] md:text-xs">+${fmtNum(item.outputZak)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-statusDanger font-bold text-[10px] md:text-xs">${fmtNum(item.deliveryZak)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right border-r border-borderMain/30 text-accentCyan font-bold text-[10px] md:text-xs">${fmtNum(item.balanceZak)}</td><td class="px-3 md:px-5 py-1.5 md:py-2 text-right font-bold text-white text-[10px] md:text-xs">${fmtDec(item.balanceTon)}</td></tr>`;
             });
             tbody.innerHTML = html;
         }
@@ -3633,7 +3723,7 @@ ${JSON.stringify(payload)}`;
                 { s: {r:2, c:0}, e: {r:2, c:6} }
             ];
             
-            const headers = ["Segment", "SKU Code", "Weight (KG)", "Stock In", "Stock Out", "Qty (ZAK)", "Qty (TON)"];
+            const headers = ["Segment", "SKU Code", "Weight (KG)", "Opening Stok", "Output Produksi (IN)", "Delivery (OUT)", "Balance Stok (ZAK)", "Balance Stok (TON)"];
             headers.forEach((h, i) => setCell(4, i, h, styleHeader));
 
             let currentRow = 5;
@@ -3644,26 +3734,30 @@ ${JSON.stringify(payload)}`;
                 if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999; return (idxA !== idxB) ? idxA - idxB : a.localeCompare(b);
             });
 
-            let gTotalZak = 0, gTotalTon = 0, gTotalIn = 0, gTotalOut = 0;
+            let gTotalZak = 0, gTotalTon = 0, gTotalIn = 0, gTotalOut = 0, gTotalOpening = 0, gTotalBalance = 0, gTotalBalanceTon = 0;
             segments.forEach(seg => {
                 setCell(currentRow, 0, seg, styleSegmentRow); 
-                for(let c=1; c<7; c++) setCell(currentRow, c, "", styleSegmentRow);
-                ws['!merges'].push({ s: {r:currentRow, c:0}, e: {r:currentRow, c:6} }); 
+                for(let c=1; c<8; c++) setCell(currentRow, c, "", styleSegmentRow);
+                ws['!merges'].push({ s: {r:currentRow, c:0}, e: {r:currentRow, c:7} }); 
                 currentRow++;
                 
                 const items = grouped[seg]; 
                 let subZak = 0, subTon = 0, subIn = 0, subOut = 0;
                 items.forEach(item => {
-                    const inVal = item.stokIn !== '' && !isNaN(item.stokIn) ? parseInt(item.stokIn, 10) : "";
-                    const outVal = item.stokOut !== '' && !isNaN(item.stokOut) ? parseInt(item.stokOut, 10) : "";
+                    const openingVal = Number(item.openingZak) || 0;
+                    const outputVal = Number(item.outputZak) || 0;
+                    const deliveryVal = Number(item.deliveryZak) || 0;
+                    const balanceZakVal = Number(item.balanceZak) || 0;
+                    const balanceTonVal = Number(item.balanceTon) || 0;
                     
                     setCell(currentRow, 0, item.segment, styleDataLeft); 
                     setCell(currentRow, 1, item.sku, styleDataLeft); 
                     setCell(currentRow, 2, item.weight, styleDataRight, 'n', '#,##0');
-                    setCell(currentRow, 3, inVal, styleDataRight, inVal !== "" ? 'n' : 's', '#,##0'); 
-                    setCell(currentRow, 4, outVal, styleDataRight, outVal !== "" ? 'n' : 's', '#,##0');
-                    setCell(currentRow, 5, item.qtyZak, styleDataRight, 'n', '#,##0'); 
-                    setCell(currentRow, 6, item.qtyTon, styleDataRightBold, 'n', '#,##0.0');
+                    setCell(currentRow, 3, openingVal, styleDataRight, 'n', '#,##0');
+                    setCell(currentRow, 4, outputVal, styleDataRight, 'n', '#,##0');
+                    setCell(currentRow, 5, deliveryVal, styleDataRight, 'n', '#,##0');
+                    setCell(currentRow, 6, balanceZakVal, styleDataRightBold, 'n', '#,##0');
+                    setCell(currentRow, 7, balanceTonVal, styleDataRightBold, 'n', '#,##0.0');
                     
                     subZak += item.qtyZak; subTon += item.qtyTon; 
                     if(inVal !== "") subIn += inVal; 
@@ -3674,46 +3768,111 @@ ${JSON.stringify(payload)}`;
                 setCell(currentRow, 0, `Subtotal ${seg}`, styleSegmentRow); 
                 for(let c=1; c<3; c++) setCell(currentRow, c, "", styleSegmentRow);
                 ws['!merges'].push({ s: {r:currentRow, c:0}, e: {r:currentRow, c:2} });
-                
-                setCell(currentRow, 3, subIn || "", styleDataRightBold, subIn ? 'n' : 's', '#,##0'); 
-                setCell(currentRow, 4, subOut || "", styleDataRightBold, subOut ? 'n' : 's', '#,##0');
-                setCell(currentRow, 5, subZak, styleDataRightBold, 'n', '#,##0'); 
-                setCell(currentRow, 6, subTon, styleDataRightBold, 'n', '#,##0.0');
+                const subOpening = items.reduce((a,x)=>a+(Number(x.openingZak)||0),0);
+                const subOutput = items.reduce((a,x)=>a+(Number(x.outputZak)||0),0);
+                const subDelivery = items.reduce((a,x)=>a+(Number(x.deliveryZak)||0),0);
+                const subBalance = items.reduce((a,x)=>a+(Number(x.balanceZak)||0),0);
+                const subBalanceTon = items.reduce((a,x)=>a+(Number(x.balanceTon)||0),0);
+                setCell(currentRow, 3, subOpening, styleDataRightBold, 'n', '#,##0');
+                setCell(currentRow, 4, subOutput, styleDataRightBold, 'n', '#,##0');
+                setCell(currentRow, 5, subDelivery, styleDataRightBold, 'n', '#,##0');
+                setCell(currentRow, 6, subBalance, styleDataRightBold, 'n', '#,##0');
+                setCell(currentRow, 7, subBalanceTon, styleDataRightBold, 'n', '#,##0.0');
                 currentRow++;
                 
-                gTotalZak += subZak; gTotalTon += subTon; gTotalIn += subIn; gTotalOut += subOut;
+                gTotalZak += subZak; gTotalTon += subTon; gTotalIn += subOutput; gTotalOut += subDelivery; gTotalOpening += subOpening; gTotalBalance += subBalance; gTotalBalanceTon += subBalanceTon;
             });
             
             setCell(currentRow, 0, "GRAND TOTAL", styleGrandTotal); 
             for(let c=1; c<3; c++) setCell(currentRow, c, "", styleGrandTotal);
             ws['!merges'].push({ s: {r:currentRow, c:0}, e: {r:currentRow, c:2} });
-            
-            setCell(currentRow, 3, gTotalIn || "", styleGrandTotal, gTotalIn ? 'n' : 's', '#,##0'); 
-            setCell(currentRow, 4, gTotalOut || "", styleGrandTotal, gTotalOut ? 'n' : 's', '#,##0');
-            setCell(currentRow, 5, gTotalZak, styleGrandTotal, 'n', '#,##0'); 
-            setCell(currentRow, 6, gTotalTon, styleGrandTotal, 'n', '#,##0.0');
+            setCell(currentRow, 3, gTotalOpening, styleGrandTotal, 'n', '#,##0');
+            setCell(currentRow, 4, gTotalIn, styleGrandTotal, 'n', '#,##0');
+            setCell(currentRow, 5, gTotalOut, styleGrandTotal, 'n', '#,##0');
+            setCell(currentRow, 6, gTotalBalance, styleGrandTotal, 'n', '#,##0');
+            setCell(currentRow, 7, gTotalBalanceTon, styleGrandTotal, 'n', '#,##0.0');
             
             currentRow += 2;
             setCell(currentRow, 0, "Catatan:", noteBoldStyle); 
             currentRow++;
             
             setCell(currentRow, 0, "1. Stock Out mencakup seluruh pergerakan stok keluar dari Warehouse Finished Goods, termasuk pengiriman ke customer, sample, damaged goods, pemakaian internal, serta pengeluaran lainnya.", noteStyle); 
-            ws['!merges'].push({ s: {r:currentRow, c:0}, e: {r:currentRow, c:6} });
+            ws['!merges'].push({ s: {r:currentRow, c:0}, e: {r:currentRow, c:7} });
             if (!ws['!rows']) ws['!rows'] = [];
             ws['!rows'][currentRow] = { hpt: 35 };
             currentRow += 2;
             
             setCell(currentRow, 0, "2. Stock In merupakan hasil output produksi yang diterima di Warehouse Finished Goods, termasuk produk retur yang telah dinyatakan layak (Good Condition) berdasarkan hasil inspeksi dan persetujuan dari Quality Control (QC).", noteStyle); 
-            ws['!merges'].push({ s: {r:currentRow, c:0}, e: {r:currentRow, c:6} });
+            ws['!merges'].push({ s: {r:currentRow, c:0}, e: {r:currentRow, c:7} });
             ws['!rows'][currentRow] = { hpt: 35 };
 
-            ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: currentRow, c: 6 } }); 
-            ws['!cols'] = [ { wch: 15 }, { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 16 } ];
+            ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: currentRow, c: 7 } }); 
+            ws['!cols'] = [ { wch: 15 }, { wch: 20 }, { wch: 14 }, { wch: 15 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 18 } ];
             ws['!pageSetup'] = { paperSize: 9, orientation: 'portrait' };
             
             XLSX.utils.book_append_sheet(wb, ws, "Executive Report");
             XLSX.writeFile(wb, `Executive_Stock_Report_${dateSelected.replace(/-/g, '')}.xlsx`);
             setTimeout(() => showToast('Export Success', 'Executive format downloaded.', 'success'), 500);
+        }
+
+        function exportExecutiveReportDetail() {
+            try {
+                // Detail export = 1:1 dengan tabel preview yang sedang tampil.
+                // Download Report tetap menggunakan format Executive lama.
+                renderExecReportPreview();
+                const table = document.querySelector('#view-exec-report table');
+                if (!table) {
+                    showToast('Warning', 'Tabel Executive Report tidak ditemukan.', 'error');
+                    return;
+                }
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.table_to_sheet(table, { raw: false });
+
+                // Tambahkan metadata di bagian atas tanpa mengubah isi tabel.
+                const dateSelected = document.getElementById('execDateFilter')?.value || '';
+                const timeEl = document.getElementById('execTimeFilter');
+                const timeRangeText = timeEl?.options?.[timeEl.selectedIndex]?.text || '';
+                XLSX.utils.sheet_add_aoa(ws, [
+                    ['Executive Report Detail'],
+                    [`Date: ${dateSelected} | ${timeRangeText}`],
+                    []
+                ], { origin: 'A1' });
+
+                // Geser tabel ke bawah 3 baris agar tetap utuh dan mudah dibaca.
+                const original = XLSX.utils.table_to_sheet(table, { raw: false });
+                const range = original['!ref'] ? XLSX.utils.decode_range(original['!ref']) : null;
+                if (range) {
+                    const rows = [];
+                    for (let r = range.s.r; r <= range.e.r; r++) {
+                        const row = [];
+                        for (let c = range.s.c; c <= range.e.c; c++) {
+                            const cell = original[XLSX.utils.encode_cell({ r, c })];
+                            row.push(cell ? cell.v : '');
+                        }
+                        rows.push(row);
+                    }
+                    const detailWs = XLSX.utils.aoa_to_sheet([
+                        ['Executive Report Detail'],
+                        [`Date: ${dateSelected} | ${timeRangeText}`],
+                        [],
+                        ...rows
+                    ]);
+                    detailWs['!cols'] = [
+                        { wch: 15 }, { wch: 24 }, { wch: 14 }, { wch: 16 },
+                        { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 18 }
+                    ];
+                    XLSX.utils.book_append_sheet(wb, detailWs, 'Detail');
+                } else {
+                    XLSX.utils.book_append_sheet(wb, ws, 'Detail');
+                }
+
+                XLSX.writeFile(wb, `Executive_Stock_Report_Detail_${dateSelected.replace(/-/g, '') || 'Report'}.xlsx`);
+                showToast('Export Success', 'Detail berhasil diunduh sesuai tabel Executive Report.', 'success');
+            } catch (err) {
+                console.error('exportExecutiveReportDetail error:', err);
+                showToast('Export Error', 'Gagal mengunduh detail: ' + (err?.message || err), 'error');
+            }
         }
 
         function exportData() {
