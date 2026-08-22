@@ -1895,11 +1895,16 @@
             }
 
             const customOrder = ['RETAIL','PROJECT','GENERAL'];
-            rows.sort((a,b) => {
-                const ia = customOrder.indexOf(String(a.segment||'').toUpperCase());
-                const ib = customOrder.indexOf(String(b.segment||'').toUpperCase());
-                const sa = ia < 0 ? 999 : ia, sb = ib < 0 ? 999 : ib;
-                return sa !== sb ? sa - sb : String(a.sku||'').localeCompare(String(b.sku||''));
+            // Urutan SKU mengikuti persis urutan summaryData / Executive Report Summary.
+            // Jangan di-sort berdasarkan nama SKU karena Summary mempertahankan urutan master data.
+            const segmentRank = seg => {
+                const idx = customOrder.indexOf(String(seg || '').toUpperCase());
+                return idx < 0 ? 999 : idx;
+            };
+            rows.sort((a, b) => {
+                const sa = segmentRank(a.segment);
+                const sb = segmentRank(b.segment);
+                return sa !== sb ? sa - sb : 0;
             });
 
             let html = '';
@@ -2119,8 +2124,9 @@
                 let subQtyZak = 0;
                 let subQtyTon = 0;
 
-                grouped[seg].sort((a, b) => String(a.sku).localeCompare(String(b.sku)));
-
+                // Jangan sort SKU secara alfabet.
+                // summaryData adalah sumber urutan resmi Summary, sehingga
+                // urutan Detail Export harus identik dengan Summary.
                 grouped[seg].forEach(item => {
                     setCell(currentRow, 0, item.segment, styleDataLeft);
                     setCell(currentRow, 1, item.sku, styleDataLeft);
