@@ -1939,40 +1939,327 @@
         }
 
         function exportExecutiveDetailReport() {
+            showToast('Preparing Report...', 'Generating Executive Detail Excel Format...', 'info');
             renderExecReportDetail();
+
             const dateSelected = document.getElementById('execDetailDateFilter')?.value || new Date().toISOString().split('T')[0];
             const movement = getExecMovementBySku(dateSelected);
             const opening = getExecOpeningBySku(dateSelected);
+
             const rows = (Array.isArray(summaryData) ? summaryData : []).map(item => {
                 const sku = String(item.sku || '').trim().toUpperCase();
-                const mv = movement[sku] || {in:0,out:0};
+                const mv = movement[sku] || { in: 0, out: 0 };
+
                 return {
                     segment: item.segment || 'GENERAL',
                     sku: item.sku || '-',
-                    weight: Number(item.weight)||0,
-                    opening: Number(opening[sku])||0,
-                    in: Number(mv.in)||0,
-                    out: Number(mv.out)||0,
-                    qtyZak: Number(item.qtyZak)||0,
-                    qtyTon: Number(item.qtyTon)||0
+                    weight: Number(item.weight) || 0,
+                    opening: Number(opening[sku]) || 0,
+                    in: Number(mv.in) || 0,
+                    out: Number(mv.out) || 0,
+                    qtyZak: Number(item.qtyZak) || 0,
+                    qtyTon: Number(item.qtyTon) || 0
                 };
             });
 
             const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet([
-                ["MORTAR INDONESIA"],
-                ["EXECUTIVE REPORT DETAIL"],
-                [`Date: ${dateSelected}`],
-                [],
-                ["Segment","SKU","Weight (KG)","Opening Balance Stock (ZAK)","IN","OUT","Qty (ZAK)","Qty (TON)"],
-                ...rows.map(r => [r.segment,r.sku,r.weight,r.opening,r.in,r.out,r.qtyZak,r.qtyTon])
-            ]);
-            ws['!cols'] = [
-                {wch:15},{wch:28},{wch:14},{wch:25},{wch:14},{wch:14},{wch:14},{wch:14}
+            const ws = {};
+
+            // === STANDARD TEMPLATE STYLE — SAME AS EXECUTIVE REPORT ===
+            const borderThin = { style: "thin", color: { rgb: "000000" } };
+            const borderAll = {
+                top: borderThin,
+                bottom: borderThin,
+                left: borderThin,
+                right: borderThin
+            };
+
+            const styleCompany = {
+                font: { name: "Arial", sz: 14, bold: true, color: { rgb: "000000" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const styleTitle = {
+                font: { name: "Arial", sz: 12, bold: true, color: { rgb: "000000" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const styleFilter = {
+                font: { name: "Arial", sz: 10, italic: true, color: { rgb: "000000" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const styleHeader = {
+                font: { name: "Arial", sz: 10, bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "1F4E78" } },
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                border: borderAll
+            };
+
+            const styleSegmentRow = {
+                font: { name: "Arial", sz: 10, bold: true, color: { rgb: "000000" } },
+                fill: { fgColor: { rgb: "DCE6F1" } },
+                alignment: { horizontal: "left", vertical: "center" },
+                border: borderAll
+            };
+
+            const styleDataLeft = {
+                font: { name: "Arial", sz: 10, color: { rgb: "000000" } },
+                alignment: { horizontal: "left", vertical: "center" },
+                border: borderAll
+            };
+
+            const styleDataRight = {
+                font: { name: "Arial", sz: 10, color: { rgb: "000000" } },
+                alignment: { horizontal: "right", vertical: "center" },
+                border: borderAll
+            };
+
+            const styleDataRightBold = {
+                font: { name: "Arial", sz: 10, bold: true, color: { rgb: "000000" } },
+                alignment: { horizontal: "right", vertical: "center" },
+                border: borderAll
+            };
+
+            const styleGrandTotal = {
+                font: { name: "Arial", sz: 11, bold: true, color: { rgb: "000000" } },
+                fill: { fgColor: { rgb: "C5D9F1" } },
+                alignment: { horizontal: "right", vertical: "center" },
+                border: {
+                    top: borderThin,
+                    bottom: { style: "double", color: { rgb: "000000" } },
+                    left: borderThin,
+                    right: borderThin
+                }
+            };
+
+            const noteBoldStyle = {
+                font: { name: "Arial", sz: 9, bold: true, italic: true, color: { rgb: "000000" } },
+                alignment: { horizontal: "left", vertical: "top" }
+            };
+
+            const noteStyle = {
+                font: { name: "Arial", sz: 9, italic: true, color: { rgb: "000000" } },
+                alignment: { horizontal: "left", vertical: "top", wrapText: true }
+            };
+
+            function setCell(r, c, val, style, t, z) {
+                const cell = { v: val, s: style };
+                if (t) cell.t = t;
+                else if (typeof val === 'number') cell.t = 'n';
+                else cell.t = 's';
+                if (z) cell.z = z;
+                ws[XLSX.utils.encode_cell({ r, c })] = cell;
+            }
+
+            // === HEADER ===
+            setCell(0, 0, "MORTAR INDONESIA", styleCompany);
+            setCell(1, 0, "EXECUTIVE REPORT DETAIL", styleTitle);
+            setCell(2, 0, `Date: ${dateSelected}`, styleFilter);
+
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
+                { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } }
             ];
+
+            const headers = [
+                "Segment",
+                "SKU Code",
+                "Weight (KG)",
+                "Opening Balance Stock (ZAK)",
+                "Stock In",
+                "Stock Out",
+                "Qty (ZAK)",
+                "Qty (TON)"
+            ];
+
+            headers.forEach((h, i) => setCell(4, i, h, styleHeader));
+
+            // === GROUP BY SEGMENT — SAME TEMPLATE AS EXECUTIVE SUMMARY ===
+            const customOrder = ['RETAIL', 'PROJECT', 'GENERAL'];
+            const grouped = {};
+
+            rows.forEach(item => {
+                const seg = String(item.segment || 'GENERAL').toUpperCase();
+                if (!grouped[seg]) grouped[seg] = [];
+                grouped[seg].push(item);
+            });
+
+            const segments = Object.keys(grouped).sort((a, b) => {
+                let ia = customOrder.indexOf(a);
+                let ib = customOrder.indexOf(b);
+                if (ia === -1) ia = 999;
+                if (ib === -1) ib = 999;
+                return ia !== ib ? ia - ib : a.localeCompare(b);
+            });
+
+            let currentRow = 5;
+            let grandOpening = 0;
+            let grandIn = 0;
+            let grandOut = 0;
+            let grandQtyZak = 0;
+            let grandQtyTon = 0;
+
+            segments.forEach(seg => {
+                // Segment divider
+                setCell(currentRow, 0, seg, styleSegmentRow);
+                for (let c = 1; c < 8; c++) setCell(currentRow, c, "", styleSegmentRow);
+
+                ws['!merges'].push({
+                    s: { r: currentRow, c: 0 },
+                    e: { r: currentRow, c: 7 }
+                });
+
+                currentRow++;
+
+                let subOpening = 0;
+                let subIn = 0;
+                let subOut = 0;
+                let subQtyZak = 0;
+                let subQtyTon = 0;
+
+                grouped[seg].sort((a, b) => String(a.sku).localeCompare(String(b.sku)));
+
+                grouped[seg].forEach(item => {
+                    setCell(currentRow, 0, item.segment, styleDataLeft);
+                    setCell(currentRow, 1, item.sku, styleDataLeft);
+                    setCell(currentRow, 2, item.weight, styleDataRight, 'n', '#,##0');
+                    setCell(currentRow, 3, item.opening, styleDataRight, 'n', '#,##0');
+                    setCell(currentRow, 4, item.in, styleDataRight, 'n', '#,##0');
+                    setCell(currentRow, 5, item.out, styleDataRight, 'n', '#,##0');
+                    setCell(currentRow, 6, item.qtyZak, styleDataRight, 'n', '#,##0');
+                    setCell(currentRow, 7, item.qtyTon, styleDataRightBold, 'n', '#,##0.0');
+
+                    subOpening += item.opening;
+                    subIn += item.in;
+                    subOut += item.out;
+                    subQtyZak += item.qtyZak;
+                    subQtyTon += item.qtyTon;
+
+                    currentRow++;
+                });
+
+                // Subtotal
+                setCell(currentRow, 0, `Subtotal ${seg}`, styleSegmentRow);
+                ws['!merges'].push({
+                    s: { r: currentRow, c: 0 },
+                    e: { r: currentRow, c: 2 }
+                });
+
+                setCell(currentRow, 3, subOpening, styleDataRightBold, 'n', '#,##0');
+                setCell(currentRow, 4, subIn, styleDataRightBold, 'n', '#,##0');
+                setCell(currentRow, 5, subOut, styleDataRightBold, 'n', '#,##0');
+                setCell(currentRow, 6, subQtyZak, styleDataRightBold, 'n', '#,##0');
+                setCell(currentRow, 7, subQtyTon, styleDataRightBold, 'n', '#,##0.0');
+
+                currentRow++;
+
+                grandOpening += subOpening;
+                grandIn += subIn;
+                grandOut += subOut;
+                grandQtyZak += subQtyZak;
+                grandQtyTon += subQtyTon;
+            });
+
+            // === GRAND TOTAL ===
+            setCell(currentRow, 0, "GRAND TOTAL", styleGrandTotal);
+            for (let c = 1; c < 3; c++) setCell(currentRow, c, "", styleGrandTotal);
+
+            ws['!merges'].push({
+                s: { r: currentRow, c: 0 },
+                e: { r: currentRow, c: 2 }
+            });
+
+            setCell(currentRow, 3, grandOpening, styleGrandTotal, 'n', '#,##0');
+            setCell(currentRow, 4, grandIn, styleGrandTotal, 'n', '#,##0');
+            setCell(currentRow, 5, grandOut, styleGrandTotal, 'n', '#,##0');
+            setCell(currentRow, 6, grandQtyZak, styleGrandTotal, 'n', '#,##0');
+            setCell(currentRow, 7, grandQtyTon, styleGrandTotal, 'n', '#,##0.0');
+
+            // === NOTES — SAME TEMPLATE LANGUAGE ===
+            currentRow += 2;
+            setCell(currentRow, 0, "Catatan:", noteBoldStyle);
+
+            currentRow++;
+            setCell(
+                currentRow,
+                0,
+                "1. Stock Out mencakup seluruh pergerakan stok keluar dari Warehouse Finished Goods, termasuk Delivery, sample, damaged goods, pemakaian internal, serta pengeluaran lainnya.",
+                noteStyle
+            );
+            ws['!merges'].push({
+                s: { r: currentRow, c: 0 },
+                e: { r: currentRow, c: 7 }
+            });
+            if (!ws['!rows']) ws['!rows'] = [];
+            ws['!rows'][currentRow] = { hpt: 35 };
+
+            currentRow += 2;
+            setCell(
+                currentRow,
+                0,
+                "2. Stock In merupakan output produksi (Output Production) dan transaksi lainnya dengan nilai Qty positif yang diterima di Warehouse Finished Goods.",
+                noteStyle
+            );
+            ws['!merges'].push({
+                s: { r: currentRow, c: 0 },
+                e: { r: currentRow, c: 7 }
+            });
+            ws['!rows'][currentRow] = { hpt: 35 };
+
+            currentRow += 1;
+            setCell(
+                currentRow,
+                0,
+                "3. Opening Balance Stock merupakan posisi stok awal pada tanggal laporan berdasarkan stok akhir dan pergerakan transaksi setelah tanggal yang dipilih.",
+                noteStyle
+            );
+            ws['!merges'].push({
+                s: { r: currentRow, c: 0 },
+                e: { r: currentRow, c: 7 }
+            });
+            ws['!rows'][currentRow] = { hpt: 35 };
+
+            ws['!ref'] = XLSX.utils.encode_range({
+                s: { r: 0, c: 0 },
+                e: { r: currentRow, c: 7 }
+            });
+
+            // Column widths mengikuti template bawaan, disesuaikan untuk 8 kolom.
+            ws['!cols'] = [
+                { wch: 14 },
+                { wch: 22 },
+                { wch: 13 },
+                { wch: 25 },
+                { wch: 14 },
+                { wch: 14 },
+                { wch: 14 },
+                { wch: 14 }
+            ];
+
+            ws['!pageSetup'] = {
+                paperSize: 9,
+                orientation: 'landscape',
+                fitToWidth: 1,
+                fitToHeight: 0
+            };
+
+            ws['!pageMargins'] = {
+                left: 0.25,
+                right: 0.25,
+                top: 0.5,
+                bottom: 0.5,
+                header: 0.2,
+                footer: 0.2
+            };
+
             XLSX.utils.book_append_sheet(wb, ws, "Report Detail");
-            XLSX.writeFile(wb, `Executive_Detail_${dateSelected.replace(/-/g,'')}.xlsx`);
-            setTimeout(() => showToast('Export Success', 'Executive Detail berhasil diunduh.', 'success'), 500);
+            XLSX.writeFile(wb, `Executive_Detail_${dateSelected.replace(/-/g, '')}.xlsx`);
+
+            setTimeout(() => {
+                showToast('Export Success', 'Executive Detail berhasil diunduh dengan template standar.', 'success');
+            }, 500);
         }
 
         function generateExecReportData() {
