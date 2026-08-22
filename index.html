@@ -1822,14 +1822,41 @@
             const targetKey = reportDateKey(selectedDate);
             if (!targetKey) return opening;
 
+            /*
+             * LOGIC OPENING BALANCE:
+             * Jika user memilih tanggal 22, maka Opening Balance = stok H-1,
+             * yaitu posisi stok pada tanggal 21.
+             *
+             * Karena summaryData merupakan snapshot stok terakhir (closing/current stock),
+             * maka untuk mendapatkan stok H-1:
+             *
+             * Opening H-1 = Closing Stock terakhir
+             *               - seluruh net movement mulai tanggal terpilih
+             *                 sampai tanggal snapshot terakhir.
+             *
+             * Contoh:
+             * Stock akhir 22 = 10,000
+             * IN tanggal 22 = 500
+             * OUT tanggal 22 = 300
+             * Opening tanggal 22 = 10,000 - (500 - 300) = 9,800
+             */
+
             const netAfter = {};
 
             (Array.isArray(transactionRecords) ? transactionRecords : []).forEach(r => {
                 const key = reportDateKey(r.dateObj || r.rawDate);
-                if (!key || key <= targetKey) return;
+
+                // Termasuk tanggal terpilih karena opening tanggal 22
+                // harus merupakan saldo sebelum transaksi tanggal 22.
+                if (!key || key < targetKey) return;
 
                 const aliases = [r.produk, r.projectDelivery]
-                    .filter(v => v !== undefined && v !== null && String(v).trim() && String(v).trim() !== '-');
+                    .filter(v =>
+                        v !== undefined &&
+                        v !== null &&
+                        String(v).trim() !== '' &&
+                        String(v).trim() !== '-'
+                    );
 
                 const qty = Number(r.zak) || 0;
                 const type = String(r.type || '').trim().toUpperCase();
@@ -1844,9 +1871,20 @@
                     type.includes('DELIVERY');
 
                 let signedMovement = 0;
-                if (isOutputProduction) signedMovement = Math.abs(qty);
-                else if (isDelivery) signedMovement = -Math.abs(qty);
-                else signedMovement = qty;
+
+                if (isOutputProduction) {
+                    // Production = penambahan stok.
+                    signedMovement = Math.abs(qty);
+                } else if (isDelivery) {
+                    // Delivery = pengurangan stok.
+                    signedMovement = -Math.abs(qty);
+                } else if (qty > 0) {
+                    // Transaksi positif lain = IN.
+                    signedMovement = qty;
+                } else if (qty < 0) {
+                    // Transaksi negatif lain = OUT.
+                    signedMovement = qty;
+                }
 
                 aliases.forEach(alias => {
                     const sku = String(alias).trim().toUpperCase();
@@ -1858,8 +1896,13 @@
             (Array.isArray(summaryData) ? summaryData : []).forEach(item => {
                 const sku = String(item.sku || '').trim().toUpperCase();
                 if (!sku) return;
-                const current = Number(item.qtyZak) || 0;
-                opening[sku] = current - (Number(netAfter[sku]) || 0);
+
+                const closingStock = Number(item.qtyZak) || 0;
+                const netMovementFromSelectedDate =
+                    Number(netAfter[sku]) || 0;
+
+                // Opening tanggal terpilih = stok H-1.
+                opening[sku] = closingStock - netMovementFromSelectedDate;
             });
 
             return opening;
@@ -2218,7 +2261,7 @@
             setCell(
                 currentRow,
                 0,
-                "3. Opening Balance Stock merupakan posisi stok awal pada tanggal laporan berdasarkan stok akhir dan pergerakan transaksi setelah tanggal yang dipilih.",
+                "3. Opening Balance Stock merupakan posisi stok H-1. Jika tanggal laporan dipilih tanggal 22, maka Opening Balance adalah posisi stok tanggal 21, dihitung dari stok akhir dikurangi net movement mulai tanggal 22.",
                 noteStyle
             );
             ws['!merges'].push({
