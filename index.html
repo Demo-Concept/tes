@@ -2418,13 +2418,29 @@
             let totalTonRetail = 0, totalTonProject = 0;
             const uniqueSKUs = new Set();
             
-            summaryData.forEach(item => { 
-                totalWeight += item.weight; 
-                totalZakSummary += item.qtyZak; 
-                totalTon += item.qtyTon; 
-                if(item.sku && item.sku !== '-') uniqueSKUs.add(item.sku); 
-                if(item.segment.toUpperCase() === 'RETAIL') totalTonRetail += item.qtyTon;
-                if(item.segment.toUpperCase() === 'PROJECT') totalTonProject += item.qtyTon;
+            // KN1 dan K2 disimpan pada rack/storage terpisah,
+            // sehingga tidak termasuk kapasitas storage pallet.
+            const isRackSeparatedSku = (skuRaw) => {
+                const sku = String(skuRaw || '').trim().toUpperCase();
+                // Hanya KN1 yang berada di rack terpisah.
+                // K2 tetap masuk ke storage pallet.
+                return sku === 'KN1' || sku.startsWith('KN1-');
+            };
+
+            summaryData.forEach(item => {
+                totalWeight += item.weight;
+                totalZakSummary += item.qtyZak;
+                if(item.sku && item.sku !== '-') uniqueSKUs.add(item.sku);
+
+                const itemTon = Number(item.qtyTon) || 0;
+
+                // Kapasitas pallet hanya menghitung SKU yang berada di
+                // storage pallet. KN1 dan K2 dikeluarkan.
+                if (!isRackSeparatedSku(item.sku)) {
+                    totalTon += itemTon;
+                    if(item.segment.toUpperCase() === 'RETAIL') totalTonRetail += itemTon;
+                    if(item.segment.toUpperCase() === 'PROJECT') totalTonProject += itemTon;
+                }
             });
             
             const todayObj = new Date();
@@ -2483,10 +2499,22 @@
                 else avgEl.className = 'font-mono font-bold text-textSecondary text-[10px] md:text-xs';
             }
 
-            let masterZakSum = totalZakSummary + todayZakDelta;
-            let adjustedTotalTon = totalTon + (todayZakDelta * 40 / 1000);
+            /*
+             * KAPASITAS GUDANG HARUS MENGIKUTI TOTAL FINISHED GOODS STOCK SUMMARY REPORT.
+             * summaryData adalah sumber angka yang sama dengan tabel Summary:
+             * totalTon = SUM Qty (TON) Finished Goods Stock Summary Report, dikurangi SKU KN1 karena storage-nya terpisah dari storage pallet. K2 tetap dihitung dalam storage pallet.
+             *
+             * Sebelumnya KPI menambahkan todayZakDelta lagi sehingga stok dihitung
+             * dua kali dan hasilnya berbeda dengan tabel.
+             */
+            const masterZakSum = totalZakSummary;
+            const adjustedTotalTon = totalTon;
 
-            const WAREHOUSE_CAPACITY_TON = 2737, spacePct = WAREHOUSE_CAPACITY_TON > 0 ? (adjustedTotalTon / WAREHOUSE_CAPACITY_TON) * 100 : 0, remainingTon = Math.max(0, WAREHOUSE_CAPACITY_TON - adjustedTotalTon);
+            const WAREHOUSE_CAPACITY_TON = 2737;
+            const spacePct = WAREHOUSE_CAPACITY_TON > 0
+                ? (adjustedTotalTon / WAREHOUSE_CAPACITY_TON) * 100
+                : 0;
+            const remainingTon = Math.max(0, WAREHOUSE_CAPACITY_TON - adjustedTotalTon);
             if(document.getElementById('kpiSpacePercent')) document.getElementById('kpiSpacePercent').innerText = `${fmtDec(spacePct)}%`;
             if(document.getElementById('kpiSpaceCurrent')) document.getElementById('kpiSpaceCurrent').innerText = `${fmtDec(adjustedTotalTon)} Ton`;
             if(document.getElementById('kpiSpaceRemaining')) document.getElementById('kpiSpaceRemaining').innerText = `${fmtDec(remainingTon)} Ton`;
@@ -2524,7 +2552,7 @@
             // Update Hover Insight Texts for KPIs
             let insight1 = '';
             if (spacePct > 90) insight1 = `Kritis! Gudang melebihi 90% kapasitas maksimal (${fmtNum(WAREHOUSE_CAPACITY_TON)} Ton). Segera aktifkan Staging Area tambahan dan percepat proses Delivery (Sisa: ${fmtDec(remainingTon)} Ton).`;
-            else if (spacePct > 75) insight1 = `Waspada! Utilisasi gudang mencapai ${fmtDec(spacePct)}%. Manajemen ruang pallet perlu dioptimalkan untuk menampung antrean produksi.`;
+            else if (spacePct > 75) insight1 = `Waspada! Utilisasi gudang mencapai ${fmtDec(spacePct)}%. Perhitungan mengikuti Finished Goods Stock Summary Report setelah dikurangi SKU KN1 (rack terpisah). K2 tetap masuk storage pallet.`;
             else insight1 = `Kondisi Optimal. Utilisasi ruang ${fmtDec(spacePct)}%. Masih tersedia kapasitas ${fmtDec(remainingTon)} Ton.`;
             
             const kpi1El = document.getElementById('kpi1InsightText');
