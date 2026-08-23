@@ -21,6 +21,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- XLSX Library Bundle (xlsx-js-style) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <!-- PowerPoint Export -->
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@latest/dist/pptxgen.bundle.js"></script>
 
     <script>
         tailwind.config = {
@@ -298,11 +300,12 @@
                             </button>
                         </div>
                     </li>
-                    <!-- Stok SIG Menu -->
+                    <!-- Stok SIG Menu (Private) -->
                     <li>
                         <button id="nav-btn-stok-sig" onclick="handleTabClick('stok-sig')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left group">
                             <i class="ph-bold ph-buildings text-xl group-hover:text-accentCyan transition-colors"></i>
                             <span class="flex-1">Stok SIG</span>
+                            <i class="ph-bold ph-lock-key text-statusWarning private-lock-icon" title="Private Access"></i>
                         </button>
                     </li>
                     <!-- Offtake Menu (Private) -->
@@ -455,7 +458,7 @@
                         <option value="GENERAL">Segment: GENERAL</option>
                     </select>
 
-                    <button onclick="exportData()" class="w-full sm:w-auto justify-center bg-gradient-to-r from-accentCyan to-blue-500 hover:from-blue-400 hover:to-accentCyan text-bgPrimary font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl shadow-glow-cyan transition-all flex items-center gap-2 text-[10px] md:text-xs transform hover:scale-105 active:scale-95 mt-2 sm:mt-0">
+                    <button onclick="exportData()" title="Login diperlukan untuk mengunduh Excel" class="w-full sm:w-auto justify-center bg-gradient-to-r from-accentCyan to-blue-500 hover:from-blue-400 hover:to-accentCyan text-bgPrimary font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl shadow-glow-cyan transition-all flex items-center gap-2 text-[10px] md:text-xs transform hover:scale-105 active:scale-95 mt-2 sm:mt-0">
                         <i class="ph-bold ph-microsoft-excel-logo text-sm md:text-base"></i>
                         Export Excel
                     </button>
@@ -726,6 +729,7 @@
                             <div class="flex gap-2 w-full xl:w-auto">
                                 <button onclick="openGeminiSettings()" class="flex-1 xl:flex-none justify-center px-3 py-2 bg-bgPrimary border border-borderMain rounded-xl text-textSecondary hover:text-white text-[10px] font-semibold flex items-center gap-2"><i class="ph-bold ph-gear"></i> Worker Settings</button>
                                 <button type="button" onclick="runAIStockAnalysis(event)" id="aiAnalyzeBtn" class="flex-1 xl:flex-none justify-center px-5 py-2 bg-gradient-to-r from-accentPurple to-pink-500 text-white font-bold rounded-xl shadow-glow-purple text-[10px] flex items-center gap-2"><i class="ph-bold ph-sparkle"></i> Analyze</button>
+                                <button type="button" onclick="exportAIExecutivePPT(event)" id="aiPptBtn" title="Login diperlukan untuk mengunduh PowerPoint" class="flex-1 xl:flex-none justify-center px-4 py-2 bg-gradient-to-r from-[#173B66] to-[#0E7490] text-white font-bold rounded-xl shadow-lg text-[10px] flex items-center gap-2 border border-accentCyan/30"><i class="ph-bold ph-presentation-chart"></i> Download PPT</button>
                             </div>
                         </div>
 
@@ -875,7 +879,7 @@
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 md:gap-3 bg-bgPrimary/50 p-2 md:p-3 rounded-lg md:rounded-xl border border-borderMain w-full xl:w-auto">
                             <div class="flex-1 sm:flex-none">
                                 <label class="block text-[9px] md:text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">Date</label>
-                                <input type="date" id="execDateFilter" onchange="renderExecReportPreview()" class="bg-bgCard border border-borderMain text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs focus:outline-none focus:border-statusSuccess transition-all cursor-pointer w-full">
+                                <input type="date" id="execDateFilter" onchange="syncExecReportDateFilters('summary')" class="bg-bgCard border border-borderMain text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs focus:outline-none focus:border-statusSuccess transition-all cursor-pointer w-full">
                             </div>
                             <div class="flex-1 sm:flex-none">
                                 <label class="block text-[9px] md:text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">Time Range</label>
@@ -935,7 +939,7 @@
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 md:gap-3 bg-bgPrimary/50 p-2 md:p-3 rounded-lg md:rounded-xl border border-borderMain w-full xl:w-auto">
                             <div class="flex-1 sm:flex-none">
                                 <label class="block text-[9px] md:text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">Date</label>
-                                <input type="date" id="execDetailDateFilter" onchange="renderExecReportDetail()" class="bg-bgCard border border-borderMain text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs focus:outline-none focus:border-accentPurple transition-all cursor-pointer w-full">
+                                <input type="date" id="execDetailDateFilter" onchange="syncExecReportDateFilters('detail')" class="bg-bgCard border border-borderMain text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs focus:outline-none focus:border-accentPurple transition-all cursor-pointer w-full">
                             </div>
                             <input type="text" id="execDetailSearch" oninput="renderExecReportDetail()" placeholder="Cari SKU / Segment..." class="bg-bgCard border border-borderMain text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs focus:outline-none focus:border-accentPurple w-full sm:w-48">
                             <button onclick="exportExecutiveDetailReport()" class="justify-center bg-gradient-to-r from-accentPurple to-indigo-600 hover:from-indigo-500 hover:to-accentPurple text-white font-bold px-3 md:px-5 py-1.5 md:py-2 rounded-md md:rounded-lg shadow-glow-purple transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs h-auto sm:h-[34px] whitespace-nowrap">
@@ -1186,8 +1190,8 @@
                     <i class="ph-fill ph-lock-key text-xl md:text-2xl"></i>
                 </div>
                 <div>
-                    <h3 class="font-extrabold text-base md:text-lg text-white">Akses Menu Terkunci</h3>
-                    <p class="text-[10px] md:text-xs text-textSecondary">Membutuhkan otorisasi untuk membuka modul ini</p>
+                    <h3 class="font-extrabold text-base md:text-lg text-white">Akses Menu Privat</h3>
+                    <p class="text-[10px] md:text-xs text-textSecondary">Masukkan kredensial admin untuk membuka modul yang dikunci</p>
                 </div>
             </div>
             <form onsubmit="submitAuthForm(event)" class="space-y-3 md:space-y-4">
@@ -1275,6 +1279,7 @@
         let chartAnimInterval = null;
         let isAuthenticated = false;
         let pendingTargetTab = null;
+        let pendingDownloadAction = null;
 
         const SEC_U = 'YWRtaW4='; 
         const SEC_P = 'bWl0cmErMDA=';
@@ -1565,9 +1570,11 @@
 
         function processUpdateRows(matrix) {
             if (!matrix || matrix.length === 0) return;
+
             let latestDateObj = new Date(0), foundValidDate = false;
             transactionRecords = [];
-            
+
+            // Detect header row.
             let bestHeaderIdx = -1, maxScore = -1;
             const keywords = ['tanggal', 'date', 'segment', 'type', 'tipe', 'produk', 'sku', 'zak', 'qty', 'ton', 'project', 'delivery'];
             for (let i = 0; i < Math.min(matrix.length, 15); i++) {
@@ -1575,111 +1582,121 @@
                 if (!row) continue;
                 let score = 0;
                 row.forEach(cell => {
-                    if (cell) {
-                        const str = cell.toString().toLowerCase();
-                        keywords.forEach(kw => { if (str.includes(kw)) score++; });
-                    }
+                    const s = String(cell || '').toLowerCase();
+                    if (s) keywords.forEach(kw => { if (s.includes(kw)) score++; });
                 });
                 if (score > maxScore) { maxScore = score; bestHeaderIdx = i; }
             }
+            if (bestHeaderIdx < 0) bestHeaderIdx = 0;
 
-            if (bestHeaderIdx === -1) bestHeaderIdx = 0;
-            const rawHeaders = matrix[bestHeaderIdx].map(h => h ? h.toString().replace(/[\r\n]+/g, ' ').trim() : '');
+            const rawHeaders = (matrix[bestHeaderIdx] || []).map(h =>
+                String(h || '').replace(/[\r\n]+/g, ' ').trim()
+            );
+            const rawRows = matrix.slice(bestHeaderIdx + 1);
             let maxCols = rawHeaders.length;
-            const rawMatrixRows = matrix.slice(bestHeaderIdx + 1);
-            rawMatrixRows.forEach(r => { if (r.length > maxCols) maxCols = r.length; });
+            rawRows.forEach(r => { if (r && r.length > maxCols) maxCols = r.length; });
 
             const cleanedHeaders = [];
             for (let c = 0; c < maxCols; c++) {
-                let hName = rawHeaders[c] || '';
-                if (!hName && rawMatrixRows.some(r => r[c] && r[c].toString().trim() !== '')) hName = `Kolom ${c + 1}`;
-                cleanedHeaders.push(hName);
+                let h = rawHeaders[c] || '';
+                if (!h && rawRows.some(r => r && String(r[c] || '').trim() !== '')) h = `Kolom ${c + 1}`;
+                cleanedHeaders.push(h);
             }
-            while (cleanedHeaders.length > 0 && !cleanedHeaders[cleanedHeaders.length - 1]) cleanedHeaders.pop();
+            while (cleanedHeaders.length && !cleanedHeaders[cleanedHeaders.length - 1]) cleanedHeaders.pop();
+
+            const normalizeHeader = h => String(h || '')
+                .toLowerCase()
+                .replace(/[\r\n]+/g, ' ')
+                .replace(/[^a-z0-9]+/g, ' ')
+                .trim();
+
+            const findHeaderIndex = patterns => {
+                const p = patterns.map(x => String(x).toLowerCase());
+                for (let c = 0; c < cleanedHeaders.length; c++) {
+                    const h = normalizeHeader(cleanedHeaders[c]);
+                    if (p.some(x => h === x || h.includes(x))) return c;
+                }
+                return -1;
+            };
+
+            /*
+             * SINGLE DATE RULE FOR ALL EXECUTIVE REPORTS:
+             * DATA column B (index 1) is ALWAYS the transaction Date.
+             * Report > Summary and Report > Detail must use this same field.
+             */
+            let idxDate = 1; // ALWAYS DATA column B = Date. Do not auto-detect another date column.
+
+            let idxSegment = findHeaderIndex(['segment', 'segmen']);
+            let idxType = findHeaderIndex(['type', 'tipe', 'jenis transaksi', 'transaction type']);
+            let idxProduk = findHeaderIndex(['produk', 'product', 'sku', 'sku code', 'material', 'item']);
+            let idxZak = findHeaderIndex(['qty zak', 'quantity zak', 'qty', 'quantity', 'zak']);
+            let idxTon = findHeaderIndex(['qty ton', 'quantity ton', 'ton']);
+            let idxProjectDelivery = findHeaderIndex(['project delivery', 'project del', 'delivery']);
+
+            // Safe fallback positions for legacy DATA layout.
+            if (idxSegment < 0) idxSegment = 1;
+            if (idxType < 0) idxType = 2;
+            if (idxProduk < 0) idxProduk = 3;
+            if (idxZak < 0) idxZak = 8;
+            if (idxTon < 0) idxTon = 9;
+            if (idxProjectDelivery < 0) idxProjectDelivery = cleanedHeaders.length - 1;
 
             const validTransRows = [];
-            rawMatrixRows.forEach(r => {
-                if (!r || r.length === 0) return;
-                const rowStr = r.join('').trim(); if (!rowStr) return;
-                const rowCells = [];
+            rawRows.forEach(r => {
+                if (!r || !r.length) return;
+                const cells = [];
                 for (let c = 0; c < cleanedHeaders.length; c++) {
-                    rowCells.push(r[c] !== undefined && r[c] !== null ? r[c].toString().trim() : '');
+                    cells.push(r[c] !== undefined && r[c] !== null ? String(r[c]).trim() : '');
                 }
-                if (rowCells.some(cell => cell !== '')) validTransRows.push(rowCells);
+                if (cells.some(Boolean)) validTransRows.push(cells);
             });
 
             transactionRawData.headers = cleanedHeaders;
             transactionRawData.rows = validTransRows;
 
             validTransRows.forEach(r => {
-                let rowTimestamp = r[0] !== undefined ? r[0] : '';
-                let rowSeg = r[1] !== undefined && r[1] !== '' ? r[1] : 'GENERAL';
-                let rowType = r[2] !== undefined && r[2] !== '' ? r[2] : 'STANDARD';
-                let rowProd = r[3] !== undefined ? r[3] : '-';
-                
-                let rowZak = r[8] !== undefined ? r[8] : 0;
-                let rowTon = r[9] !== undefined ? r[9] : 0;
-                let rowProjDel = r[r.length - 1] !== undefined ? r[r.length - 1] : '-';
+                const rowTimestamp = r[idxDate] !== undefined ? r[idxDate] : '';
+                const rowSeg = r[idxSegment] || 'GENERAL';
+                const rowType = r[idxType] || 'STANDARD';
+                const rowProd = r[idxProduk] || '-';
+                const rowProjDel = r[idxProjectDelivery] || '-';
 
                 let trDateObj = new Date(NaN);
-                if (rowTimestamp && rowTimestamp.toString().trim() !== '') {
-                    const str = rowTimestamp.toString().trim();
-                    let parsedDate = new Date(NaN);
-                    const regexIndo = /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:\s+(\d{1,2})[:\.](\d{1,2})(?:[:\.](\d{1,2}))?)?/;
-                    const matchIndo = str.match(regexIndo);
-                    if (matchIndo) {
-                        const p1 = parseInt(matchIndo[1], 10), p2 = parseInt(matchIndo[2], 10), year = parseInt(matchIndo[3], 10), hour = matchIndo[4] ? parseInt(matchIndo[4], 10) : 0, min = matchIndo[5] ? parseInt(matchIndo[5], 10) : 0, sec = matchIndo[6] ? parseInt(matchIndo[6], 10) : 0;
-                        if (p2 >= 1 && p2 <= 12 && p1 >= 1 && p1 <= 31) parsedDate = new Date(year, p2 - 1, p1, hour, min, sec);
-                        else if (p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) parsedDate = new Date(year, p1 - 1, p2, hour, min, sec);
-                    }
-                    if (isNaN(parsedDate.getTime())) parsedDate = new Date(str);
-                    
-                    if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() > 2000) { 
-                        trDateObj = parsedDate;
-                        if (parsedDate > latestDateObj) { latestDateObj = parsedDate; foundValidDate = true; } 
+                if (String(rowTimestamp).trim()) {
+                    trDateObj = parseReportDate(rowTimestamp);
+                    if (!isNaN(trDateObj.getTime()) && trDateObj.getFullYear() > 2000) {
+                        if (trDateObj > latestDateObj) {
+                            latestDateObj = trDateObj;
+                            foundValidDate = true;
+                        }
+                    } else {
+                        trDateObj = new Date(NaN);
                     }
                 }
 
-                // Header-aware fallback: DATA tidak selalu memiliki Qty ZAK di kolom ke-9.
-                const normalizeHeader = h => String(h || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-                const findHeaderIndex = patterns => {
-                    for (let c = 0; c < cleanedHeaders.length; c++) {
-                        const h = normalizeHeader(cleanedHeaders[c]);
-                        if (patterns.some(p => h.includes(p))) return c;
-                    }
-                    return -1;
-                };
-
-                const idxZak = findHeaderIndex(['qty zak', 'quantity zak', 'total qty zak']);
-                const idxTon = findHeaderIndex(['qty ton', 'quantity ton', 'total qty ton']);
-                const idxProjectDelivery = findHeaderIndex(['project delivery', 'project del']);
-
-                if (idxZak >= 0) rowZak = r[idxZak];
-                if (idxTon >= 0) rowTon = r[idxTon];
-                if (idxProjectDelivery >= 0) rowProjDel = r[idxProjectDelivery];
-
-                const cleanZak = cleanNum(rowZak);
-                let cleanT = cleanNum(rowTon);
-                if (cleanT === 0 && cleanZak > 0) {
-                    cleanT = (cleanZak * 40) / 1000;
+                const cleanZak = cleanNum(r[idxZak]);
+                let cleanT = cleanNum(r[idxTon]);
+                if (cleanT === 0 && cleanZak !== 0) {
+                    cleanT = (Math.abs(cleanZak) * 40) / 1000;
                 }
 
                 transactionRecords.push({
-                    rawDate: rowTimestamp ? rowTimestamp.toString().trim() : '-',
+                    rawDate: String(rowTimestamp || '').trim() || '-',
                     dateObj: trDateObj,
-                    segment: rowSeg ? rowSeg.toString().trim() : 'GENERAL',
-                    type: rowType ? rowType.toString().trim() : 'STANDARD',
-                    produk: rowProd ? rowProd.toString().trim() : '-',
+                    segment: String(rowSeg || 'GENERAL').trim(),
+                    type: String(rowType || 'STANDARD').trim(),
+                    produk: String(rowProd || '-').trim(),
                     zak: cleanZak,
                     ton: cleanT,
-                    projectDelivery: rowProjDel ? rowProjDel.toString().trim() : '-',
+                    projectDelivery: String(rowProjDel || '-').trim(),
                     originalRow: r
                 });
             });
 
             if (foundValidDate) {
-                const dateOptions = { day: '2-digit', month: 'short', year: 'numeric' }, timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
-                lastUpdateDateStr = latestDateObj.toLocaleDateString('en-GB', dateOptions); 
+                const dateOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+                const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
+                lastUpdateDateStr = latestDateObj.toLocaleDateString('en-GB', dateOptions);
                 lastUpdateTimeStr = latestDateObj.toLocaleTimeString('en-GB', timeOptions);
             }
         }
@@ -1769,9 +1786,23 @@
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         }
 
+        // SINGLE SOURCE OF TRUTH FOR REPORT DATE:
+        // Stock IN and Stock OUT must use exactly the same DATA column B date.
+        function getTransactionDateKey(record) {
+            if (!record) return '';
+            // originalRow[1] is DATA column B (Date)
+            const colB = Array.isArray(record.originalRow) ? record.originalRow[1] : '';
+            return reportDateKey(colB !== undefined && colB !== null && String(colB).trim() !== '' ? colB : record.rawDate);
+        }
+
         function getExecMovementBySku(selectedDate) {
             const movement = {};
             const targetKey = reportDateKey(selectedDate);
+            if (!targetKey) return movement;
+
+            // Use the SKU master shown in the Executive Report as the canonical SKU set.
+            // This lets IN/OUT resolve the SKU whether it sits in Produk or Project Delivery.
+            const knownSkus = new Set((summaryData || []).map(x => String(x.sku || '').trim().toUpperCase()).filter(Boolean));
 
             const addMove = (skuRaw, direction, qty) => {
                 const sku = String(skuRaw || '').trim().toUpperCase();
@@ -1781,37 +1812,58 @@
                 movement[sku][direction] += amount;
             };
 
+            const resolveSku = (r, direction) => {
+                const candidates = [r.produk, r.projectDelivery]
+                    .map(v => String(v || '').trim())
+                    .filter(v => v && v !== '-');
+
+                // Prefer a candidate that exactly matches a SKU in the report.
+                const matched = candidates.find(v => knownSkus.has(v.toUpperCase()));
+                if (matched) return matched;
+
+                // Preserve the original business rule as fallback.
+                return direction === 'in' ? (candidates[0] || '') : (candidates[1] || candidates[0] || '');
+            };
+
             (Array.isArray(transactionRecords) ? transactionRecords : []).forEach(r => {
-                const key = reportDateKey(r.dateObj || r.rawDate);
+                // CRITICAL: IN and OUT use exactly the same DATA column-B transaction date.
+                const key = getTransactionDateKey(r);
                 if (!key || key !== targetKey) return;
 
-                const type = String(r.type || '').trim().toUpperCase();
-                const qty = Number(r.zak) || 0;
-
-                // SKU bisa berada di Produk atau Project Delivery.
-                const aliases = [r.produk, r.projectDelivery]
-                    .filter(v => v !== undefined && v !== null && String(v).trim() && String(v).trim() !== '-');
-
-                if (!aliases.length) return;
+                const typeRaw = String(r.type || '').trim();
+                const type = typeRaw.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
+                const qty = Math.abs(Number(r.zak) || 0);
+                if (!qty) return;
 
                 const isOutputProduction =
-                    type === 'OUTPUT PRODUCTION' ||
-                    type.includes('OUTPUT PRODUCTION') ||
-                    (type.includes('OUTPUT') && type.includes('PRODUCTION'));
+                    (type.includes('OUTPUT') && (type.includes('PRODUKSI') || type.includes('PRODUCTION'))) ||
+                    type === 'PRODUKSI' || type === 'PRODUCTION' ||
+                    type.includes('HASIL PRODUKSI');
 
                 const isDelivery =
-                    type === 'DELIVERY' ||
-                    type.includes('DELIVERY');
+                    type === 'DELIVERY' || type.includes('DELIVERY') ||
+                    type.includes('PENGIRIMAN') || type.includes('KIRIM');
 
-                let direction = '';
-                if (isOutputProduction) direction = 'in';
-                else if (isDelivery) direction = 'out';
-                else if (qty > 0) direction = 'in';
-                else if (qty < 0) direction = 'out';
+                if (isOutputProduction) {
+                    const sku = resolveSku(r, 'in');
+                    addMove(sku, 'in', qty);
+                    return;
+                }
 
-                if (!direction) return;
+                if (isDelivery) {
+                    const sku = resolveSku(r, 'out');
+                    addMove(sku, 'out', qty);
+                    return;
+                }
 
-                aliases.forEach(alias => addMove(alias, direction, qty));
+                // Other explicit IN/OUT transaction labels.
+                if (type.includes('IN') || type.includes('MASUK')) {
+                    const sku = resolveSku(r, 'in');
+                    addMove(sku, 'in', qty);
+                } else if (type.includes('OUT') || type.includes('KELUAR') || type.includes('OFFTAKE')) {
+                    const sku = resolveSku(r, 'out');
+                    addMove(sku, 'out', qty);
+                }
             });
 
             return movement;
@@ -1844,7 +1896,7 @@
             const netAfter = {};
 
             (Array.isArray(transactionRecords) ? transactionRecords : []).forEach(r => {
-                const key = reportDateKey(r.dateObj || r.rawDate);
+                const key = getTransactionDateKey(r);
 
                 // Termasuk tanggal terpilih karena opening tanggal 22
                 // harus merupakan saldo sebelum transaksi tanggal 22.
@@ -1863,8 +1915,11 @@
 
                 const isOutputProduction =
                     type === 'OUTPUT PRODUCTION' ||
+                    type === 'OUTPUT PRODUKSI' ||
                     type.includes('OUTPUT PRODUCTION') ||
-                    (type.includes('OUTPUT') && type.includes('PRODUCTION'));
+                    type.includes('OUTPUT PRODUKSI') ||
+                    (type.includes('OUTPUT') && (type.includes('PRODUCTION') || type.includes('PRODUKSI'))) ||
+                    (type.includes('PRODUKSI') && !type.includes('DELIVERY'));
 
                 const isDelivery =
                     type === 'DELIVERY' ||
@@ -1908,15 +1963,36 @@
             return opening;
         }
 
+        function getExecReportSelectedDate(source = 'summary') {
+            const id = source === 'detail' ? 'execDetailDateFilter' : 'execDateFilter';
+            const el = document.getElementById(id);
+            return (el && el.value) ? el.value : new Date().toISOString().split('T')[0];
+        }
+
+        function syncExecReportDateFilters(source = 'summary') {
+            const selected = getExecReportSelectedDate(source);
+            const summaryEl = document.getElementById('execDateFilter');
+            const detailEl = document.getElementById('execDetailDateFilter');
+            if (summaryEl) summaryEl.value = selected;
+            if (detailEl) detailEl.value = selected;
+
+            // Both Report > Summary and Report > Detail use the exact same
+            // transaction-date source: DATA column B.
+            if (typeof generateExecReportData === 'function') generateExecReportData();
+            if (typeof renderExecReportPreview === 'function') renderExecReportPreview();
+            if (typeof renderExecReportDetail === 'function') renderExecReportDetail();
+        }
+
         function renderExecReportDetail() {
             const tbody = document.getElementById('execDetailReportTableBody');
             if (!tbody) return;
 
             const dateInput = document.getElementById('execDetailDateFilter');
             const searchInput = document.getElementById('execDetailSearch');
-            const selectedDate = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split('T')[0];
+            const selectedDate = getExecReportSelectedDate('detail');
             const query = (searchInput && searchInput.value ? searchInput.value : '').trim().toLowerCase();
 
+            // Detail uses the exact same date engine as Summary: transactionRecords -> DATA column B.
             const movement = getExecMovementBySku(selectedDate);
             const opening = getExecOpeningBySku(selectedDate);
 
@@ -1990,7 +2066,7 @@
             showToast('Preparing Report...', 'Generating Executive Detail Excel Format...', 'info');
             renderExecReportDetail();
 
-            const dateSelected = document.getElementById('execDetailDateFilter')?.value || new Date().toISOString().split('T')[0];
+            const dateSelected = getExecReportSelectedDate('detail');
             const movement = getExecMovementBySku(dateSelected);
             const opening = getExecOpeningBySku(dateSelected);
 
@@ -2588,6 +2664,10 @@
 
         function renderExecReportPreview() {
             const tbody = document.getElementById('execReportTableBody'); if(!tbody) return;
+
+            // Rebuild from source DATA every time the date changes.
+            // Never carry IN/OUT values from the previous selected date.
+            execReportData = [];
             generateExecReportData();
             const grouped = {};
             execReportData.forEach(item => {
@@ -4008,6 +4088,259 @@
             renderLocalRisk();
         }
 
+
+        async function exportAIExecutivePPT(event) {
+            if (event) { event.preventDefault(); event.stopPropagation(); }
+
+            if (!requireDownloadAuth(() => exportAIExecutivePPT(), 'mengunduh PowerPoint AI Stock Intelligence')) return;
+
+            const btn = document.getElementById('aiPptBtn');
+
+            const ensurePptxGenLoaded = () => new Promise((resolve, reject) => {
+                // Official browser bundle exposes PptxGenJS on window.
+                if (typeof window.PptxGenJS === 'function') {
+                    resolve(window.PptxGenJS);
+                    return;
+                }
+
+                // Backward compatibility for older bundles.
+                if (typeof window.pptxgen === 'function') {
+                    resolve(window.pptxgen);
+                    return;
+                }
+
+                const existing = document.querySelector('script[data-pptxgen-loader="1"]');
+                if (existing) {
+                    existing.addEventListener('load', () => {
+                        const Ctor = window.PptxGenJS || window.pptxgen;
+                        Ctor ? resolve(Ctor) : reject(new Error('PptxGenJS termuat tetapi constructor tidak ditemukan.'));
+                    }, {once:true});
+                    existing.addEventListener('error', () => reject(new Error('CDN PowerPoint gagal dimuat.')), {once:true});
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@latest/dist/pptxgen.bundle.js';
+                script.async = true;
+                script.dataset.pptxgenLoader = '1';
+                script.onload = () => {
+                    const Ctor = window.PptxGenJS || window.pptxgen;
+                    Ctor ? resolve(Ctor) : reject(new Error('PptxGenJS termuat tetapi constructor tidak ditemukan.'));
+                };
+                script.onerror = () => reject(new Error('CDN PowerPoint gagal dimuat. Pastikan browser dapat mengakses jsDelivr/GitHub.'));
+                document.head.appendChild(script);
+            });
+
+            let PptxGenJS;
+            try {
+                PptxGenJS = await ensurePptxGenLoaded();
+            } catch (loadErr) {
+                showToast('PowerPoint', loadErr.message, 'warning');
+                return;
+            }
+            const original = btn ? btn.innerHTML : '';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="ph-bold ph-spinner-gap animate-spin"></i> Preparing...';
+                }
+
+                // Pastikan visual dashboard dan KPI terbaru sudah tersedia.
+                try { updateAIVisuals(); } catch (e) { console.warn('PPT visual refresh:', e); }
+
+                const pptx = new PptxGenJS();
+                pptx.layout = 'LAYOUT_WIDE'; // 13.333 x 7.5
+                pptx.author = 'Mortar Indonesia';
+                pptx.company = 'Mortar Indonesia';
+                pptx.subject = 'AI Stock Intelligence Dashboard';
+                pptx.title = 'AI Stock Intelligence — Executive Management Review';
+                pptx.lang = 'id-ID';
+                pptx.theme = {
+                    headFontFace: 'Aptos Display',
+                    bodyFontFace: 'Aptos',
+                    lang: 'id-ID'
+                };
+                pptx.defineSlideMaster({
+                    title: 'EXEC_MASTER',
+                    background: { color: 'FFFFFF' },
+                    objects: [
+                        { rect: { x:0, y:0, w:13.333, h:0.10, fill:{color:'173B66'}, line:{color:'173B66'} } },
+                        { rect: { x:0.45, y:6.82, w:12.43, h:0.01, fill:{color:'D9E2F0'}, line:{color:'D9E2F0'} } },
+                        { text: { text:'MORTAR INDONESIA  |  SUPPLY CHAIN INTELLIGENCE', options:{x:0.55,y:6.91,w:7.5,h:0.18,fontFace:'Aptos',fontSize:7,color:'6B7280',margin:0} } },
+                        { text: { text:'CONFIDENTIAL — EXECUTIVE MANAGEMENT REVIEW', options:{x:8.2,y:6.91,w:4.3,h:0.18,fontFace:'Aptos',fontSize:7,color:'6B7280',align:'right',margin:0} } }
+                    ],
+                    slideNumber: { x:12.65, y:6.86, color:'6B7280', fontFace:'Aptos', fontSize:7 }
+                });
+
+                const C = {
+                    navy:'173B66', panel:'F5F7FA', panel2:'EAF1F8',
+                    cyan:'007F9E', purple:'5B4BC4', green:'168A5B',
+                    red:'C63D52', amber:'B77900', white:'FFFFFF',
+                    muted:'667085', line:'D9E2F0', black:'172033'
+                };
+
+                const safe = (v, fallback='-') => {
+                    const s = String(v ?? '').trim();
+                    return s || fallback;
+                };
+                const n = v => Number(v) || 0;
+                const fmt = v => {
+                    try { return new Intl.NumberFormat('id-ID',{maximumFractionDigits:1}).format(n(v)); }
+                    catch(e) { return String(v); }
+                };
+                const aiTextEl = document.getElementById('aiResult');
+                const aiText = aiTextEl ? aiTextEl.innerText.trim() : '';
+
+                const snapTon = document.getElementById('aiSnapTon')?.innerText || '0 Ton';
+                const snapSku = document.getElementById('aiSnapSku')?.innerText || '0';
+                const snapIn = document.getElementById('aiSnapIn')?.innerText || '0';
+                const snapOut = document.getElementById('aiSnapOut')?.innerText || '0';
+
+                // --- Helpers ---
+                function addTitle(slide, title, subtitle='') {
+                    slide.addText(title, {x:0.55,y:0.38,w:8.9,h:0.42,fontFace:'Aptos Display',fontSize:22,bold:true,color:C.navy,margin:0});
+                    if (subtitle) slide.addText(subtitle, {x:0.57,y:0.86,w:10.5,h:0.25,fontSize:9,color:C.muted,margin:0});
+                }
+                function addPill(slide, text, x, y, w, fill=C.panel2, color=C.cyan) {
+                    slide.addShape(pptx.ShapeType.roundRect,{x,y,w,h:0.34,rectRadius:0.06,fill:{color:fill},line:{color:fill}});
+                    slide.addText(text,{x:x+0.08,y:y+0.07,w:w-0.16,h:0.18,fontSize:7.5,bold:true,color,align:'center',margin:0});
+                }
+                function addKPI(slide, x, label, value, accent, sub='') {
+                    slide.addShape(pptx.ShapeType.roundRect,{x,y:1.35,w:2.88,h:1.05,rectRadius:0.08,fill:{color:C.panel},line:{color:C.line,width:1}});
+                    slide.addShape(pptx.ShapeType.rect,{x,y:1.35,w:0.06,h:1.05,fill:{color:accent},line:{color:accent}});
+                    slide.addText(label,{x:x+0.2,y:1.53,w:2.4,h:0.18,fontSize:8,bold:true,color:C.muted,margin:0});
+                    slide.addText(value,{x:x+0.2,y:1.78,w:2.4,h:0.32,fontSize:18,bold:true,color:C.navy,margin:0});
+                    if(sub) slide.addText(sub,{x:x+0.2,y:2.15,w:2.4,h:0.15,fontSize:7,color:C.muted,margin:0});
+                }
+                function addSectionCard(slide, title, body, x, y, w, h, accent=C.cyan) {
+                    slide.addShape(pptx.ShapeType.roundRect,{x,y,w,h,rectRadius:0.06,fill:{color:C.panel},line:{color:C.line,width:1}});
+                    slide.addText(title,{x:x+0.2,y:y+0.16,w:w-0.4,h:0.25,fontSize:11,bold:true,color:accent,margin:0});
+                    slide.addText(body,{x:x+0.2,y:y+0.55,w:w-0.4,h:h-0.68,fontSize:9.2,color:C.black,breakLine:false,fit:'shrink',valign:'top',margin:0.02});
+                }
+                function addChartImage(slide, id, x, y, w, h) {
+                    const canvas = document.getElementById(id);
+                    if (!canvas || !canvas.toDataURL) return false;
+                    try {
+                        slide.addImage({data:canvas.toDataURL('image/png',1.0),x,y,w,h});
+                        return true;
+                    } catch(e) { return false; }
+                }
+                function sectionText(letter) {
+                    const re = new RegExp('(?:^|\\n)'+letter+'[.)]?[ \\t]+([\\s\\S]*?)(?=\\n[A-I][.)]?[ \\t]+|$)','i');
+                    const m = aiText.match(re);
+                    return m ? m[1].trim() : '';
+                }
+                function bulletsFrom(text, max=7) {
+                    return text.split(/\n+/).map(s=>s.replace(/^[\\s•*-]+/,'').trim()).filter(Boolean).slice(0,max);
+                }
+                function addBulletList(slide, items, x, y, w, h, fontSize=10) {
+                    const lines = items.length ? items.map(t=>({text:t,options:{bullet:{indent:11},breakLine:true}})) : [{text:'Belum tersedia.',options:{breakLine:true}}];
+                    slide.addText(lines,{x,y,w,h,fontSize,color:C.black,breakLine:false,fit:'shrink',valign:'top',margin:0.02,paraSpaceAfterPt:7});
+                }
+
+                // Slide 1 — Executive Cover
+                {
+                    const s = pptx.addSlide('EXEC_MASTER');
+                    s.background = {color:'FFFFFF'};
+                    s.addShape(pptx.ShapeType.rect,{x:0.65,y:1.15,w:0.10,h:4.85,fill:{color:C.cyan},line:{color:C.cyan}});
+                    s.addText('AI STOCK INTELLIGENCE',{x:1.05,y:1.45,w:7.5,h:0.6,fontFace:'Aptos Display',fontSize:29,bold:true,color:C.navy,margin:0});
+                    s.addText('EXECUTIVE MANAGEMENT REVIEW',{x:1.08,y:2.12,w:7.3,h:0.35,fontSize:15,bold:true,color:C.cyan,margin:0});
+                    s.addText('Finished Goods • Supply Chain • Warehouse',{x:1.1,y:2.62,w:6.8,h:0.3,fontSize:11,color:C.muted,margin:0});
+                    s.addShape(pptx.ShapeType.roundRect,{x:0.78,y:3.35,w:4.5,h:1.15,rectRadius:0.08,fill:{color:C.panel},line:{color:C.line}});
+                    s.addText('CURRENT FG STOCK',{x:1.02,y:3.62,w:2.8,h:0.18,fontSize:8,bold:true,color:C.muted,margin:0});
+                    s.addText(snapTon,{x:1.02,y:3.88,w:3.7,h:0.38,fontSize:22,bold:true,color:C.navy,margin:0});
+                    s.addText(`Generated ${new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}`,{x:0.8,y:5.65,w:5.8,h:0.25,fontSize:9,color:C.muted,margin:0});
+                    s.addText('Decision support deck — prepared from dashboard data and AI management analysis.',{x:0.8,y:6.1,w:7.6,h:0.35,fontSize:10,color:C.white,margin:0});
+                    addPill(s,'EXECUTIVE READY',9.55,1.5,2.35,'EAF5F1',C.green);
+                    addPill(s,'AI-ASSISTED ANALYSIS',9.55,1.98,2.35,'F0EEFB',C.purple);
+                }
+
+                // Slide 2 — Executive Snapshot
+                {
+                    const s = pptx.addSlide('EXEC_MASTER');
+                    addTitle(s,'Executive Snapshot','KPI utama yang perlu dibawa ke Management Review');
+                    addKPI(s,0.55,'FG STOCK',snapTon,C.cyan,'Current balance');
+                    addKPI(s,3.72,'ACTIVE SKU',snapSku,C.purple,'Active SKU');
+                    addKPI(s,6.89,'IN — MTD',snapIn,C.green,'Inbound');
+                    addKPI(s,10.06,'OUT — MTD',snapOut,C.red,'Outbound');
+
+                    const exec = sectionText('A');
+                    addSectionCard(s,'Executive Summary',exec || 'Analisis AI belum tersedia. Jalankan Analyze terlebih dahulu.',0.55,2.72,12.23,2.15,C.cyan);
+
+                    const mgmt = sectionText('I');
+                    addSectionCard(s,'Management Takeaway',mgmt || 'Management takeaway belum tersedia.',0.55,5.05,12.23,1.55,C.purple);
+                }
+
+                // Slide 3 — Flow & Trend
+                {
+                    const s = pptx.addSlide('EXEC_MASTER');
+                    addTitle(s,'Stock Flow & Trend','Pergerakan IN vs OUT dan daily net movement');
+                    addChartImage(s,'aiTrendChart',0.55,1.25,6.0,3.25);
+                    addChartImage(s,'aiNetMovementChart',6.78,1.25,6.0,3.25);
+                    addSectionCard(s,'Performance Analysis',sectionText('B') || 'Belum tersedia.',0.55,4.72,12.23,1.75,C.green);
+                }
+
+                // Slide 4 — Stock Concentration & Outflow
+                {
+                    const s = pptx.addSlide('EXEC_MASTER');
+                    addTitle(s,'SKU Concentration & Outflow','Fokus pada inventory concentration dan SKU dengan tekanan outbound terbesar');
+                    addChartImage(s,'aiTopSkuChart',0.55,1.25,6.0,3.25);
+                    addChartImage(s,'aiOutflowChart',6.78,1.25,6.0,3.25);
+                    addSectionCard(s,'SKU Analysis',sectionText('D') || 'Belum tersedia.',0.55,4.72,12.23,1.75,C.amber);
+                }
+
+                // Slide 5 — Segment & Capacity
+                {
+                    const s = pptx.addSlide('EXEC_MASTER');
+                    addTitle(s,'Segment Mix & Capacity','Komposisi stok dan implikasi terhadap kapasitas warehouse');
+                    addChartImage(s,'aiSegmentChart',0.55,1.3,5.25,3.55);
+                    addSectionCard(s,'Segment Analysis',sectionText('E') || 'Belum tersedia.',6.05,1.3,6.73,1.72,C.cyan);
+                    addSectionCard(s,'Stock Position & Capacity',sectionText('C') || 'Belum tersedia.',6.05,3.18,6.73,1.67,C.purple);
+                    addSectionCard(s,'Risk & Capacity Check',sectionText('F') || 'Belum tersedia.',0.55,5.08,12.23,1.32,C.red);
+                }
+
+                // Slide 6 — Risks & Root Cause
+                {
+                    const s = pptx.addSlide('EXEC_MASTER');
+                    addTitle(s,'Risk & Root Cause','Prioritas risiko dan interpretasi pola inventory');
+                    addSectionCard(s,'Risk Alert',sectionText('F') || 'Belum tersedia.',0.55,1.25,6.0,4.95,C.red);
+                    addSectionCard(s,'Root Cause / Interpretation',sectionText('G') || 'Belum tersedia.',6.78,1.25,6.0,4.95,C.amber);
+                }
+
+                // Slide 7 — Action Plan & Management Decisions
+                {
+                    const s = pptx.addSlide('EXEC_MASTER');
+                    addTitle(s,'Recommended Actions & Decisions','Rencana tindakan yang siap dibawa ke forum eksekutif');
+                    addSectionCard(s,'Recommended Action',sectionText('H') || 'Belum tersedia.',0.55,1.25,7.25,5.15,C.green);
+                    addSectionCard(s,'Management Takeaway',sectionText('I') || 'Belum tersedia.',8.05,1.25,4.73,5.15,C.purple);
+                }
+
+                // Slide 8 — Appendix: Dashboard Visuals
+                {
+                    const s = pptx.addSlide('EXEC_MASTER');
+                    addTitle(s,'Appendix — Dashboard Visuals','Reference charts generated directly from the AI Stock Intelligence Dashboard');
+                    addChartImage(s,'aiTrendChart',0.55,1.2,4.0,2.35);
+                    addChartImage(s,'aiTopSkuChart',4.68,1.2,4.0,2.35);
+                    addChartImage(s,'aiOutflowChart',8.81,1.2,3.97,2.35);
+                    addChartImage(s,'aiNetMovementChart',0.55,3.82,6.0,2.55);
+                    addChartImage(s,'aiSegmentChart',6.78,3.82,6.0,2.55);
+                }
+
+                const fileDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+                await pptx.writeFile({ fileName:`AI_Stock_Intelligence_Executive_Review_${fileDate}.pptx` });
+
+                setTimeout(() => showToast('PowerPoint Ready','Executive PowerPoint berhasil dibuat dan siap dipresentasikan.','success'), 500);
+            } catch (err) {
+                console.error('PPT Export Error:', err);
+                showToast('PowerPoint Error', String(err.message || err).slice(0,160), 'warning');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = original || '<i class="ph-bold ph-presentation-chart"></i> Download PPT';
+                }
+            }
+        }
+
         async function runAIStockAnalysis(event) {
             if (event) { event.preventDefault(); event.stopPropagation(); }
             const btn=document.getElementById('aiAnalyzeBtn');
@@ -4086,7 +4419,7 @@ ${JSON.stringify(payload)}`;
                 toggleSidebar();
             }
 
-            const privateTabs = ['exec-report', 'exec-report-detail', 'offtake', 'pallet', 'trans-detail', 'trans-summary']; 
+            const privateTabs = ['exec-report', 'exec-report-detail', 'offtake', 'pallet', 'trans-detail', 'trans-summary', 'stok-sig']; 
             if (privateTabs.includes(tabName)) { 
                 if (isAuthenticated) switchMainTab(tabName); 
                 else { pendingTargetTab = tabName; openAuthModal(); } 
@@ -4179,13 +4512,19 @@ ${JSON.stringify(payload)}`;
             if (document.getElementById('authUsername').value.trim() === atob(SEC_U) && document.getElementById('authPassword').value.trim() === atob(SEC_P)) {
                 isAuthenticated = true; updateAuthUI(); closeAuthModal(); showToast('Akses Diberikan', 'Sesi privat berhasil diverifikasi.', 'success');
                 if (pendingTargetTab) switchMainTab(pendingTargetTab);
+                if (pendingDownloadAction) {
+                    const action = pendingDownloadAction;
+                    pendingDownloadAction = null;
+                    setTimeout(() => action(), 150);
+                }
             } else { document.getElementById('authErrorMsg').classList.remove('hidden'); document.getElementById('authErrorText').innerText = 'Username atau Password salah!'; }
         }
         function logoutSession() { 
             isAuthenticated = false; 
+            pendingDownloadAction = null;
             updateAuthUI(); 
             showToast('Sesi Terkunci', 'Anda telah kembali ke mode Publik.', 'info'); 
-            if (['exec-report', 'exec-report-detail', 'offtake', 'pallet', 'trans-detail', 'trans-summary'].includes(activeMainTab)) switchMainTab('stock'); 
+            if (['exec-report', 'exec-report-detail', 'offtake', 'pallet', 'trans-detail', 'trans-summary', 'stok-sig'].includes(activeMainTab)) switchMainTab('stock'); 
         }
         
         function updateAuthUI() { 
@@ -4326,7 +4665,16 @@ ${JSON.stringify(payload)}`;
             setTimeout(() => showToast('Export Success', 'Executive format downloaded.', 'success'), 500);
         }
 
+        function requireDownloadAuth(action, label = 'Download') {
+            if (isAuthenticated) return true;
+            pendingDownloadAction = action;
+            showToast('Login Required', `Silakan login terlebih dahulu untuk ${label}.`, 'warning');
+            openAuthModal();
+            return false;
+        }
+
         function exportData() {
+            if (!requireDownloadAuth(() => exportData(), 'mengunduh file Excel')) return;
             showToast('Exporting...', 'Preparing standard Excel report (Template Style)...', 'info');
             const wb = XLSX.utils.book_new(), now = new Date(), ws = {};
             const printDateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth()+1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
