@@ -458,7 +458,7 @@
                         <option value="GENERAL">Segment: GENERAL</option>
                     </select>
 
-                    <button onclick="exportData()" title="Stock Overview dapat diunduh tanpa login" class="w-full sm:w-auto justify-center bg-gradient-to-r from-accentCyan to-blue-500 hover:from-blue-400 hover:to-accentCyan text-bgPrimary font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl shadow-glow-cyan transition-all flex items-center gap-2 text-[10px] md:text-xs transform hover:scale-105 active:scale-95 mt-2 sm:mt-0">
+                    <button onclick="exportData()" title="Stok Overview: download tanpa login; menu lain wajib login" class="w-full sm:w-auto justify-center bg-gradient-to-r from-accentCyan to-blue-500 hover:from-blue-400 hover:to-accentCyan text-bgPrimary font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl shadow-glow-cyan transition-all flex items-center gap-2 text-[10px] md:text-xs transform hover:scale-105 active:scale-95 mt-2 sm:mt-0">
                         <i class="ph-bold ph-microsoft-excel-logo text-sm md:text-base"></i>
                         Export Excel
                     </button>
@@ -4674,9 +4674,11 @@ ${JSON.stringify(payload)}`;
         }
 
         function exportData() {
-            // Stock Overview is public: download does not require login.
-            // Master Stock Details remains protected.
-            if (activeMainTab === 'detail') {
+            // Stock Overview is the only stock menu whose download is public.
+            // All other export/download actions remain protected by their own guards.
+            // ONLY the main "Stok Overview" menu is public.
+            // "Stock Summary Overview", "Master Stock Details", and other exports remain private.
+            if (activeMainTab !== 'stock') {
                 if (!requireDownloadAuth(() => exportData(), 'mengunduh file Excel')) return;
             }
             showToast('Exporting...', 'Preparing standard Excel report (Template Style)...', 'info');
