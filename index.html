@@ -2130,13 +2130,16 @@
             });
 
             const output = [];
+            // DO NUMBER HARUS UNIK SECARA GLOBAL, TIDAK RESET UNTUK SETIAP TOKO/INCO1.
+            let globalDoCounter = 0;
+            const nextDoNo = () => `DO-${String(++globalDoCounter).padStart(4, '0')}`;
 
             const addLoads = (targetItems, targetDate, incoterm, store, totalTon) => {
                 const plan = getVehiclePlan(totalTon);
                 if (plan.vehicleCount <= 0 || plan.capacity <= 0) return;
 
                 const doRows = Array.from({ length: plan.vehicleCount }, (_, i) => ({
-                    doNo: `DO-${String(i + 1).padStart(2, '0')}`,
+                    doNo: nextDoNo(),
                     usedTon: 0,
                     items: []
                 }));
@@ -2163,7 +2166,7 @@
                         if (idx < 0) {
                             idx = used.length;
                             used.push(0);
-                            doRows.push({ doNo: `DO-${String(idx + 1).padStart(2, '0')}`, usedTon: 0, items: [] });
+                            doRows.push({ doNo: nextDoNo(), usedTon: 0, items: [] });
                         }
                         const free = Math.max(0, plan.capacity - used[idx]);
                         const part = Math.min(remaining, free);
