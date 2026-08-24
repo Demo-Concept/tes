@@ -336,18 +336,21 @@
                             <i class="ph-bold ph-sparkle text-xl group-hover:text-accentPurple transition-colors"></i>
                             <span class="flex-1">AI Stock Analyst</span>
                             <span class="text-[8px] bg-accentPurple/15 text-accentPurple border border-accentPurple/20 px-1.5 py-0.5 rounded font-bold">AI</span>
+                                                    <i class="ph-bold ph-lock-key text-statusWarning private-lock-icon" title="Private Access"></i>
                         </button>
                     </li>
                     <li>
                         <button id="nav-btn-detail" onclick="handleTabClick('detail')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left group">
                             <i class="ph-bold ph-database text-xl group-hover:text-accentPurple transition-colors"></i>
                             <span class="flex-1">Master Stock Details</span>
+                                                    <i class="ph-bold ph-lock-key text-statusWarning private-lock-icon" title="Private Access"></i>
                         </button>
                     </li>
                     <li>
                         <button id="nav-btn-summary-only" onclick="handleTabClick('summary-only')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left group">
                             <i class="ph-bold ph-table text-xl group-hover:text-accentCyan transition-colors"></i>
                             <span class="flex-1">Stock Summary Overview</span>
+                                                    <i class="ph-bold ph-lock-key text-statusWarning private-lock-icon" title="Private Access"></i>
                         </button>
                     </li>
                     <li>
@@ -355,6 +358,7 @@
                             <i class="ph-bold ph-truck text-xl group-hover:text-accentCyan transition-colors"></i>
                             <span class="flex-1">Delivery Requirement</span>
                             <i id="actualVsSoMenuCaret" class="ph-bold ph-caret-down text-accentPurple transition-transform"></i>
+                                                    <i class="ph-bold ph-lock-key text-statusWarning private-lock-icon" title="Private Access"></i>
                         </button>
                         <div id="actualVsSoSubmenu" class="ml-3 mt-1 pl-3 border-l border-borderMain/60 space-y-1">
                             <button id="nav-btn-actual-vs-so" onclick="handleTabClick('actual-vs-so')" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left text-[11px]">
@@ -364,7 +368,8 @@
                             <button id="nav-btn-plan-delivery" onclick="handleTabClick('plan-delivery')" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left text-[11px]">
                                 <i class="ph-bold ph-calendar-check text-accentCyan"></i>
                                 <span class="flex-1">Plan Delivery</span>
-                            </button>
+                                                        <i class="ph-bold ph-lock-key text-statusWarning private-lock-icon" title="Private Access"></i>
+                        </button>
                         </div>
                     </li>
                     <!-- Report Menu (Private) -->
@@ -379,11 +384,13 @@
                             <button id="nav-btn-exec-report-summary" onclick="handleTabClick('exec-report')" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left text-[11px]">
                                 <i class="ph-bold ph-table text-accentCyan"></i>
                                 <span class="flex-1">Summary</span>
-                            </button>
+                                                        <i class="ph-bold ph-lock-key text-statusWarning private-lock-icon" title="Private Access"></i>
+                        </button>
                             <button id="nav-btn-exec-report-detail" onclick="handleTabClick('exec-report-detail')" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left text-[11px]">
                                 <i class="ph-bold ph-list-dashes text-accentPurple"></i>
                                 <span class="flex-1">Detail</span>
-                            </button>
+                                                        <i class="ph-bold ph-lock-key text-statusWarning private-lock-icon" title="Private Access"></i>
+                        </button>
                         </div>
                     </li>
                     <!-- Stok SIG Menu (Private) -->
@@ -1596,6 +1603,8 @@
         let aiSegmentChartInstance = null;
         let chartAnimInterval = null;
         let isAuthenticated = false;
+        // AI Analyst mendapatkan 1x akses gratis per browser; akses berikutnya wajib login.
+        let aiAnalystFreeUsed = localStorage.getItem('LMS_AI_ANALYST_FREE_USED') === '1';
         let pendingTargetTab = null;
 
         const SEC_U = 'YWRtaW4='; 
@@ -6188,7 +6197,32 @@ ${JSON.stringify(payload)}`;
             }
         }
 
+        // Semua menu selain Stock Overview wajib login.
+        const LOCKED_TABS = [
+            'ai-analyst', 'detail', 'summary-only', 'actual-vs-so', 'plan-delivery',
+            'exec-report', 'exec-report-detail', 'offtake', 'pallet',
+            'trans-detail', 'trans-summary', 'stok-sig'
+        ];
+
+        function toggleActualVsSoMenu() {
+            if (!isAuthenticated) {
+                pendingTargetTab = 'actual-vs-so';
+                openAuthModal();
+                return;
+            }
+            const menu = document.getElementById('actualVsSoSubmenu');
+            const caret = document.getElementById('actualVsSoMenuCaret');
+            if (!menu) return;
+            const hidden = menu.classList.toggle('hidden');
+            if (caret) caret.style.transform = hidden ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
         function toggleReportMenu() {
+            if (!isAuthenticated) {
+                pendingTargetTab = 'exec-report';
+                openAuthModal();
+                return;
+            }
             const menu = document.getElementById('reportSubmenu');
             const caret = document.getElementById('reportMenuCaret');
             if (!menu) return;
@@ -6197,24 +6231,34 @@ ${JSON.stringify(payload)}`;
             if (caret) caret.style.transform = willOpen ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-        function toggleActualVsSoMenu() {
-            const menu = document.getElementById('actualVsSoSubmenu');
-            const caret = document.getElementById('actualVsSoMenuCaret');
-            if (!menu) return;
-            const hidden = menu.classList.toggle('hidden');
-            if (caret) caret.style.transform = hidden ? 'rotate(0deg)' : 'rotate(180deg)';
-        }
-
         function handleTabClick(tabName) {
             if (window.innerWidth < 1024) {
                 toggleSidebar();
             }
 
-            const privateTabs = ['exec-report', 'exec-report-detail', 'offtake', 'pallet', 'trans-detail', 'trans-summary', 'stok-sig']; 
-            if (privateTabs.includes(tabName)) { 
-                if (isAuthenticated) switchMainTab(tabName); 
-                else { pendingTargetTab = tabName; openAuthModal(); } 
-            } else switchMainTab(tabName);
+            // Stock Overview selalu publik. AI Analyst mendapat 1x akses gratis; setelah itu wajib login.
+            if (tabName === 'ai-analyst' && !isAuthenticated) {
+                if (!aiAnalystFreeUsed) {
+                    aiAnalystFreeUsed = true;
+                    localStorage.setItem('LMS_AI_ANALYST_FREE_USED', '1');
+                    switchMainTab(tabName);
+                    showToast('Free Access', 'AI Analyst dibuka 1 kali gratis. Akses berikutnya memerlukan login.', 'info');
+                } else {
+                    pendingTargetTab = tabName;
+                    openAuthModal();
+                    showToast('Login Diperlukan', 'Kuota akses gratis AI Analyst sudah digunakan.', 'warning');
+                }
+                return;
+            }
+
+            // Semua menu privat selain Stock Overview wajib login.
+            if (LOCKED_TABS.includes(tabName)) {
+                if (isAuthenticated) switchMainTab(tabName);
+                else { pendingTargetTab = tabName; openAuthModal(); }
+                return;
+            }
+
+            switchMainTab(tabName);
         }
 
         function switchMainTab(tabName) {
@@ -6312,8 +6356,8 @@ ${JSON.stringify(payload)}`;
         function logoutSession() { 
             isAuthenticated = false; 
             updateAuthUI(); 
-            showToast('Sesi Terkunci', 'Anda telah kembali ke mode Publik.', 'info'); 
-            if (['exec-report', 'exec-report-detail', 'offtake', 'pallet', 'trans-detail', 'trans-summary', 'stok-sig'].includes(activeMainTab)) switchMainTab('stock'); 
+            showToast('Sesi Terkunci', 'Anda telah kembali ke mode Publik. Hanya Stock Overview yang dapat diakses.', 'info'); 
+            if (LOCKED_TABS.includes(activeMainTab)) switchMainTab('stock'); 
         }
         
         function updateAuthUI() { 
