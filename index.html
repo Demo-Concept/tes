@@ -290,7 +290,7 @@
                         <div id="actualVsSoSubmenu" class="ml-3 mt-1 pl-3 border-l border-borderMain/60 space-y-1">
                             <button id="nav-btn-actual-vs-so" onclick="handleTabClick('actual-vs-so')" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left text-[11px]">
                                 <i class="ph-bold ph-truck text-accentCyan"></i>
-                                <span class="flex-1">Delivery Requirement</span>
+                                <span class="flex-1">Actual Stok VS SO</span>
                             </button>
                             <button id="nav-btn-plan-delivery" onclick="handleTabClick('plan-delivery')" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left text-[11px]">
                                 <i class="ph-bold ph-calendar-check text-accentCyan"></i>
@@ -890,102 +890,99 @@
                     </div>
                 </div>
 
-                <!-- TAB: DELIVERY REQUIREMENT & MATERIAL SHORTAGE -->
+                <!-- TAB: ACTUAL STOCK VS SO / MATERIAL SHORTAGE -->
                 <div id="view-actual-vs-so" class="hidden w-full">
                     <div class="glass-panel rounded-2xl border border-borderMain overflow-hidden w-full">
                         <div class="p-4 md:p-5 border-b border-borderMain bg-bgCard/90 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
                             <div>
                                 <h3 class="font-black text-white text-sm md:text-base flex items-center gap-2">
-                                    <i class="ph-fill ph-truck text-accentCyan text-lg md:text-xl"></i> Delivery Requirement & Material Shortage
+                                    <i class="ph-fill ph-git-compare text-accentCyan text-lg md:text-xl"></i> Actual Stok VS SO
                                 </h3>
-                                <p class="text-[10px] md:text-xs text-textSecondary mt-1">Kebutuhan CDD, Tronton, dan Container per tanggal serta deteksi produk yang tidak dapat dikirim karena keterbatasan Finished Goods.</p>
-                                <p id="actualVsSoSourceInfo" class="text-[9px] text-statusWarning font-mono mt-1">Source: Sheet SO • Tanggal AB • Qty Ton AM • Actual FG Stock</p>
+                                <p class="text-[10px] md:text-xs text-textSecondary mt-1">Material yang shortage berdasarkan perbandingan Actual FG Stock vs SO, dikelompokkan Segment → Material.</p>
+                                <p id="actualVsSoSourceInfo" class="text-[9px] text-statusWarning font-mono mt-1">Source: Actual FG Stock • Sheet SO kolom AM (Qty Ton)</p>
                             </div>
                             <div class="flex flex-wrap gap-2 w-full xl:w-auto">
-                                <input id="deliveryRequirementSearch" oninput="renderDeliveryRequirement(this.value)" type="text" placeholder="Cari tanggal / SKU / kendaraan..." class="flex-1 xl:w-64 bg-bgPrimary border border-borderMain text-white rounded-xl px-3 py-2 text-[10px] focus:outline-none focus:border-accentCyan">
-                                <input id="deliveryRequirementDate" onchange="renderDeliveryRequirement(document.getElementById('deliveryRequirementSearch')?.value || '')" type="date" class="bg-bgPrimary border border-borderMain text-white rounded-xl px-3 py-2 text-[10px] focus:outline-none focus:border-accentCyan">
-                                <select id="deliveryRequirementVehicleFilter" onchange="renderDeliveryRequirement(document.getElementById('deliveryRequirementSearch')?.value || '')" class="bg-bgPrimary border border-borderMain text-white rounded-xl px-3 py-2 text-[10px] focus:outline-none focus:border-accentCyan">
-                                    <option value="ALL">Semua Kendaraan</option>
-                                    <option value="CDD">CDD</option>
-                                    <option value="Tronton">Tronton</option>
-                                    <option value="Container">Container</option>
+                                <input id="actualVsSoSearch" oninput="renderActualVsSo(this.value)" type="text" placeholder="Cari segment / material..." class="flex-1 xl:w-64 bg-bgPrimary border border-borderMain text-white rounded-xl px-3 py-2 text-[10px] focus:outline-none focus:border-accentCyan">
+                                <select id="actualVsSoSegmentFilter" onchange="renderActualVsSo(document.getElementById('actualVsSoSearch')?.value || '')" class="bg-bgPrimary border border-borderMain text-white rounded-xl px-3 py-2 text-[10px] focus:outline-none focus:border-accentCyan">
+                                    <option value="ALL">Semua Segment</option>
                                 </select>
-                                <button onclick="clearDeliveryRequirementFilters()" class="justify-center px-3 py-2 bg-bgPrimary hover:bg-white/10 border border-borderMain rounded-xl text-textSecondary hover:text-white text-[10px] font-semibold flex items-center gap-2">
+                                <select id="actualVsSoUnitFilter" onchange="renderActualVsSo(document.getElementById('actualVsSoSearch')?.value || '')" class="bg-bgPrimary border border-accentCyan/30 text-white rounded-xl px-3 py-2 text-[10px] focus:outline-none focus:border-accentCyan font-bold" title="Pilih satuan Qty">
+                                    <option value="TON">Qty TON</option>
+                                    <option value="ZAK">Qty ZAK</option>
+                                </select>
+                                <button onclick="clearActualVsSoFilters()" class="justify-center px-3 py-2 bg-bgPrimary hover:bg-white/10 border border-borderMain rounded-xl text-textSecondary hover:text-white text-[10px] font-semibold flex items-center gap-2">
                                     <i class="ph-bold ph-x-circle"></i> Clear
                                 </button>
                                 <button onclick="loadSOData(true)" class="justify-center px-3 py-2 bg-bgPrimary hover:bg-white/10 border border-borderMain rounded-xl text-textSecondary hover:text-white text-[10px] font-semibold flex items-center gap-2">
                                     <i class="ph-bold ph-arrows-clockwise text-accentCyan"></i> Reload SO
                                 </button>
-                                <button onclick="exportDeliveryRequirement()" class="justify-center px-3 py-2 bg-gradient-to-r from-accentCyan to-blue-500 text-bgPrimary font-bold rounded-xl text-[10px] flex items-center gap-2 shadow-glow-cyan">
+                                <button onclick="exportActualVsSo()" class="justify-center px-3 py-2 bg-gradient-to-r from-accentCyan to-blue-500 text-bgPrimary font-bold rounded-xl text-[10px] flex items-center gap-2 shadow-glow-cyan">
                                     <i class="ph-bold ph-microsoft-excel-logo"></i> Export Excel
                                 </button>
                             </div>
                         </div>
 
                         <div class="p-4 md:p-5 border-b border-borderMain">
-                            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-                                <div class="ai-kpi-card"><span>Total Delivery</span><strong id="drKpiTon">0 TON</strong><small>Total kebutuhan delivery</small></div>
-                                <div class="ai-kpi-card"><span>CDD</span><strong id="drKpiCDD">0</strong><small>Unit kebutuhan</small></div>
-                                <div class="ai-kpi-card"><span>Tronton</span><strong id="drKpiTronton">0</strong><small>Unit kebutuhan</small></div>
-                                <div class="ai-kpi-card"><span>Container</span><strong id="drKpiContainer">0</strong><small>Unit kebutuhan</small></div>
-                                <div class="ai-kpi-card ai-kpi-danger"><span>Shortage</span><strong id="drKpiShortageTon">0 TON</strong><small>Qty tidak dapat dipenuhi</small></div>
-                                <div class="ai-kpi-card ai-kpi-danger"><span>SKU Shortage</span><strong id="drKpiShortageSku">0</strong><small>Produk terdampak</small></div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div class="ai-kpi-card"><span>Material Shortage</span><strong id="avsKpiMaterial">0</strong><small>SKU material terdampak</small></div>
+                                <div class="ai-kpi-card ai-kpi-danger"><span>Shortage TON</span><strong id="avsKpiShortage">0 TON</strong><small>SO di atas actual stock</small></div>
+                                <div class="ai-kpi-card"><span>Actual Stock</span><strong id="avsKpiActual">0 TON</strong><small>Stock tersedia</small></div>
+                                <div class="ai-kpi-card"><span>Total SO</span><strong id="avsKpiSo">0 TON</strong><small>Kebutuhan SO</small></div>
                             </div>
                         </div>
 
                         <div class="p-4 md:p-5 bg-bgPrimary/20 border-b border-borderMain">
                             <div class="rounded-xl border border-statusWarning/20 bg-statusWarning/5 px-3 py-2 text-[9px] md:text-[10px] text-textSecondary leading-relaxed">
-                                <span class="font-bold text-statusWarning">Logika Material Shortage:</span>
-                                kebutuhan delivery per SKU pada setiap tanggal dibandingkan dengan actual FG stock yang tersedia. Jika kebutuhan lebih besar dari projected stock, selisih ditandai <span class="font-bold text-statusDanger">TIDAK BISA KIRIM</span>.
-                                Perhitungan ini tidak memasukkan produksi/inbound masa depan.
-                            </div>
-                        </div>
-
-                        <div class="p-4 md:p-5 border-b border-borderMain">
-                            <div class="flex items-center justify-between gap-2 mb-3">
-                                <div>
-                                    <h4 class="font-black text-white text-xs md:text-sm flex items-center gap-2"><i class="ph-fill ph-calendar-check text-accentCyan"></i> Kebutuhan Kendaraan per Tanggal</h4>
-                                    <p class="text-[9px] text-textSecondary mt-1">Jumlah unit berdasarkan hasil grouping DO dari kebutuhan TON per tanggal.</p>
-                                </div>
-                            </div>
-                            <div class="overflow-auto max-h-[360px]">
-                                <table class="w-full text-left border-collapse whitespace-nowrap text-xs md:text-sm">
-                                    <thead class="sticky top-0 bg-[#14213d] z-10 border-b border-borderMain shadow-sm">
-                                        <tr class="text-[9px] md:text-[11px] font-bold text-textSecondary uppercase tracking-wider">
-                                            <th class="px-3 md:px-5 py-3">Tanggal</th>
-                                            <th class="px-3 md:px-5 py-3 text-center">CDD</th>
-                                            <th class="px-3 md:px-5 py-3 text-center">Tronton</th>
-                                            <th class="px-3 md:px-5 py-3 text-center">Container</th>
-                                            <th class="px-3 md:px-5 py-3 text-right">Total TON</th>
-                                            <th class="px-3 md:px-5 py-3 text-right">SKU</th>
-                                            <th class="px-3 md:px-5 py-3 text-right">Shortage TON</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="deliveryRequirementDateBody" class="divide-y divide-borderMain/40 font-sans"></tbody>
-                                </table>
+                                <span class="font-bold text-statusWarning">Logika:</span> Material dikategorikan <span class="font-bold text-statusDanger">SHORTAGE</span> apabila Actual FG Stock lebih kecil dari Qty SO. Tampilan hanya menampilkan material yang shortage dan dikelompokkan secara hierarki <span class="font-bold text-white">Segment → Material</span>. Qty SO menggunakan kolom AM (Qty Ton).
                             </div>
                         </div>
 
                         <div class="p-4 md:p-5">
                             <div class="flex items-center justify-between gap-2 mb-3">
                                 <div>
-                                    <h4 class="font-black text-white text-xs md:text-sm flex items-center gap-2"><i class="ph-fill ph-warning text-statusDanger"></i> Produk Tidak Bisa Kirim karena Material Shortage</h4>
-                                    <p class="text-[9px] text-textSecondary mt-1">Detail SKU yang kebutuhan delivery-nya melebihi projected FG stock pada tanggal tersebut.</p>
+                                    <h4 class="font-black text-white text-xs md:text-sm flex items-center gap-2"><i class="ph-fill ph-warning text-statusDanger"></i> Material Shortage by Segment</h4>
+                                    <p class="text-[9px] text-textSecondary mt-1">Segment menjadi level utama, kemudian material/SKU shortage di bawah masing-masing segment.</p>
                                 </div>
+                                <span id="avsShortageSummary" class="text-[9px] font-bold text-statusDanger"></span>
                             </div>
-                            <div class="overflow-auto max-h-[560px]">
+                            <div class="overflow-auto max-h-[650px]">
                                 <table class="w-full text-left border-collapse whitespace-nowrap text-xs md:text-sm">
                                     <thead class="sticky top-0 bg-[#14213d] z-10 border-b border-borderMain shadow-sm">
                                         <tr class="text-[9px] md:text-[11px] font-bold text-textSecondary uppercase tracking-wider">
-                                            <th class="px-3 md:px-5 py-3">Tanggal</th>
-                                            <th class="px-3 md:px-5 py-3">SKU</th>
-                                            <th class="px-3 md:px-5 py-3 text-right">Kebutuhan TON</th>
-                                            <th class="px-3 md:px-5 py-3 text-right">Projected Stock</th>
-                                            <th class="px-3 md:px-5 py-3 text-right">Shortage TON</th>
+                                            <th class="px-3 md:px-5 py-3">Segment</th>
+                                            <th class="px-3 md:px-5 py-3">Material / SKU</th>
+                                            <th id="avsShortageActualHeader" class="px-3 md:px-5 py-3 text-right">Actual Stock TON</th>
+                                            <th id="avsShortageSoHeader" class="px-3 md:px-5 py-3 text-right">SO TON</th>
+                                            <th id="avsShortageGapHeader" class="px-3 md:px-5 py-3 text-right">Material Shortage TON</th>
                                             <th class="px-3 md:px-5 py-3 text-center">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="deliveryRequirementShortageBody" class="divide-y divide-borderMain/40 font-sans"></tbody>
+                                    <tbody id="actualVsSoShortageBody" class="divide-y divide-borderMain/40 font-sans"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="p-4 md:p-5 border-t border-borderMain bg-bgPrimary/10">
+                            <div class="flex items-center justify-between gap-2 mb-3">
+                                <div>
+                                    <h4 class="font-black text-white text-xs md:text-sm flex items-center gap-2"><i class="ph-fill ph-list-dashes text-accentCyan"></i> Detail All Material Actual VS SO</h4>
+                                    <p class="text-[9px] text-textSecondary mt-1">Seluruh material yang memiliki Actual Stock dan/atau SO, termasuk SHORTAGE, MATCH, EXCESS, dan NO SO.</p>
+                                </div>
+                                <span id="avsAllMaterialSummary" class="text-[9px] font-bold text-accentCyan"></span>
+                            </div>
+                            <div class="overflow-auto max-h-[700px]">
+                                <table class="w-full text-left border-collapse whitespace-nowrap text-xs md:text-sm">
+                                    <thead class="sticky top-0 bg-[#14213d] z-10 border-b border-borderMain shadow-sm">
+                                        <tr class="text-[9px] md:text-[11px] font-bold text-textSecondary uppercase tracking-wider">
+                                            <th class="px-3 md:px-5 py-3">Segment</th>
+                                            <th class="px-3 md:px-5 py-3">Material / SKU</th>
+                                            <th id="avsAllActualHeader" class="px-3 md:px-5 py-3 text-right">Actual Stock TON</th>
+                                            <th id="avsAllSoHeader" class="px-3 md:px-5 py-3 text-right">SO TON</th>
+                                            <th id="avsAllGapHeader" class="px-3 md:px-5 py-3 text-right">Gap TON</th>
+                                            <th class="px-3 md:px-5 py-3 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="actualVsSoAllMaterialBody" class="divide-y divide-borderMain/40 font-sans"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -1671,6 +1668,8 @@
                             console.error('SO load failed:', err);
                             actualVsSoData = [];
                             deliveryRequirementData = { dateRows: [], shortageRows: [] };
+                            actualVsSoData = [];
+                            renderActualVsSo('');
                             renderDeliveryRequirement();
                             showToast('SO Warning', 'Sheet SO gagal dimuat; kebutuhan delivery belum dapat dihitung.', 'warning');
                         })
@@ -2557,8 +2556,9 @@
             (summaryData || []).forEach(x => {
                 const key = String(x.sku || '').trim().toUpperCase();
                 if (!key) return;
-                if (!actualMap[key]) actualMap[key] = { sku: x.sku, segment: x.segment || 'GENERAL', actualTon: 0 };
+                if (!actualMap[key]) actualMap[key] = { sku: x.sku, segment: x.segment || 'GENERAL', actualTon: 0, weightKg: cleanNum(x.weight) };
                 actualMap[key].actualTon += cleanNum(x.qtyTon);
+                if (cleanNum(actualMap[key].weightKg) <= 0 && cleanNum(x.weight) > 0) actualMap[key].weightKg = cleanNum(x.weight);
             });
 
             const keys = new Set([...Object.keys(actualMap), ...Object.keys(soMap)]);
@@ -2572,14 +2572,15 @@
                 if (!soMap[key] || soTon === 0) status = 'NO_SO';
                 else if (gapTon > 0.01) status = 'EXCESS';
                 else if (gapTon < -0.01) status = 'SHORTAGE';
-                return { sku: a.sku || so.sku || key, segment: a.segment || so.segment || 'GENERAL', actualTon, soTon, gapTon, status };
+                return { sku: a.sku || so.sku || key, segment: a.segment || so.segment || 'GENERAL', actualTon, soTon, gapTon, weightKg: cleanNum(a.weightKg || 0), status };
             }).sort((x,y) => Math.abs(y.gapTon) - Math.abs(x.gapTon));
 
-            const source = `Actual: Finished Goods Stock Summary Report • SO: Sheet SO kolom AM (Qty Ton)`;
+            const source = `Actual: Finished Goods Stock Summary Report • SO: Sheet SO kolom AM (Qty Ton) • Material Shortage: Actual < SO`;
             const info = document.getElementById('actualVsSoSourceInfo');
             if (info) info.textContent = `${source} • ${soRawData.rows.length} baris`;
             buildPlanDeliveryData();
             buildDeliveryRequirementData();
+            renderActualVsSo(document.getElementById('actualVsSoSearch')?.value || '');
         }
 
         async function loadSOData(showMessage = false) {
@@ -2803,9 +2804,185 @@
             `).join('') : `<tr><td colspan="6" class="px-4 py-10 text-center text-statusSuccess italic">Tidak ada produk yang terdeteksi shortage berdasarkan actual FG stock.</td></tr>`;
         }
 
-        // Backward-compatible wrapper for any existing callers.
         function renderActualVsSo(search = '') {
-            renderDeliveryRequirement(search);
+            const body = document.getElementById('actualVsSoShortageBody');
+            const allBody = document.getElementById('actualVsSoAllMaterialBody');
+            if (!body) return;
+
+            const q = String(search || '').trim().toLowerCase();
+            const segmentFilter = document.getElementById('actualVsSoSegmentFilter')?.value || 'ALL';
+            const unit = document.getElementById('actualVsSoUnitFilter')?.value || 'TON';
+            const unitLabel = unit === 'ZAK' ? 'ZAK' : 'TON';
+            const qtyByUnit = (ton, weightKg) => { const t=cleanNum(ton); if(unit==='TON') return t; const w=cleanNum(weightKg); return w>0 ? (t*1000)/w : null; };
+            const fmtQty = (ton, weightKg) => { const v=qtyByUnit(ton,weightKg); return v===null ? '-' : (unit==='ZAK' ? fmtNum(v) : fmtDec(v)); };
+            const setTxt = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+            setTxt('avsShortageActualHeader', `Actual Stock ${unitLabel}`);
+            setTxt('avsShortageSoHeader', `SO ${unitLabel}`);
+            setTxt('avsShortageGapHeader', `Material Shortage ${unitLabel}`);
+            setTxt('avsAllActualHeader', `Actual Stock ${unitLabel}`);
+            setTxt('avsAllSoHeader', `SO ${unitLabel}`);
+            setTxt('avsAllGapHeader', `Gap ${unitLabel}`);
+            const allRows = (actualVsSoData || []).filter(r => r.status === 'SHORTAGE' && cleanNum(r.gapTon) < -0.01);
+
+            const segments = Array.from(new Set(allRows.map(r => String(r.segment || 'GENERAL').trim().toUpperCase()).filter(Boolean))).sort();
+            const segSelect = document.getElementById('actualVsSoSegmentFilter');
+            if (segSelect) {
+                const current = segSelect.value || 'ALL';
+                segSelect.innerHTML = '<option value="ALL">Semua Segment</option>' + segments.map(seg => `<option value="${seg}">${seg}</option>`).join('');
+                segSelect.value = segments.includes(current) ? current : 'ALL';
+            }
+
+            const rows = allRows.filter(r => {
+                const segment = String(r.segment || 'GENERAL').trim().toUpperCase();
+                const material = String(r.sku || '').trim();
+                if (segmentFilter !== 'ALL' && segment !== segmentFilter) return false;
+                if (q && !(`${segment} ${material}`.toLowerCase().includes(q))) return false;
+                return true;
+            }).sort((a,b) => {
+                const sa = String(a.segment || 'GENERAL');
+                const sb = String(b.segment || 'GENERAL');
+                return sa.localeCompare(sb) || cleanNum(b.shortageTon || -b.gapTon) - cleanNum(a.shortageTon || -a.gapTon) || String(a.sku).localeCompare(String(b.sku));
+            });
+
+            const shortageTon = rows.reduce((s,r) => s + Math.max(0, -cleanNum(r.gapTon)), 0);
+            const actualTon = rows.reduce((s,r) => s + cleanNum(r.actualTon), 0);
+            const soTon = rows.reduce((s,r) => s + cleanNum(r.soTon), 0);
+            const actualQty = rows.reduce((s,r)=>s+(qtyByUnit(r.actualTon,r.weightKg)||0),0);
+            const soQty = rows.reduce((s,r)=>s+(qtyByUnit(r.soTon,r.weightKg)||0),0);
+            const shortageQty = rows.reduce((s,r)=>s+(qtyByUnit(Math.max(0,-cleanNum(r.gapTon)),r.weightKg)||0),0);
+            setTxt('avsKpiMaterial', rows.length.toLocaleString('id-ID'));
+            setTxt('avsKpiShortage', `${unit==='ZAK'?fmtNum(shortageQty):fmtDec(shortageTon)} ${unitLabel}`);
+            setTxt('avsKpiActual', `${unit==='ZAK'?fmtNum(actualQty):fmtDec(actualTon)} ${unitLabel}`);
+            setTxt('avsKpiSo', `${unit==='ZAK'?fmtNum(soQty):fmtDec(soTon)} ${unitLabel}`);
+            setTxt('avsShortageSummary', `${rows.length.toLocaleString('id-ID')} material shortage • ${unit==='ZAK'?fmtNum(shortageQty):fmtDec(shortageTon)} ${unitLabel}`);
+
+            if (!rows.length) {
+                body.innerHTML = '<tr><td colspan="6" class="px-4 py-12 text-center text-statusSuccess italic">Tidak ada material shortage sesuai filter.</td></tr>';
+                return;
+            }
+
+            const groups = {};
+            rows.forEach(r => {
+                const segment = String(r.segment || 'GENERAL').trim().toUpperCase() || 'GENERAL';
+                if (!groups[segment]) groups[segment] = [];
+                groups[segment].push(r);
+            });
+
+            let html = '';
+            Object.keys(groups).sort().forEach(segment => {
+                const items = groups[segment];
+                const segShortage = items.reduce((s,r) => s + (qtyByUnit(Math.max(0,-cleanNum(r.gapTon)),r.weightKg)||0), 0);
+                const segActual = items.reduce((s,r) => s + (qtyByUnit(r.actualTon,r.weightKg)||0), 0);
+                const segSo = items.reduce((s,r) => s + (qtyByUnit(r.soTon,r.weightKg)||0), 0);
+                html += `<tr class="bg-accentCyan/10 border-t-2 border-accentCyan/30">
+                    <td class="px-3 md:px-5 py-3 text-accentCyan font-black" colspan="2"><i class="ph-bold ph-folder-open mr-1"></i>${segment} <span class="text-[9px] text-textSecondary ml-2">${items.length} material</span></td>
+                    <td class="px-3 md:px-5 py-3 text-right font-black text-white font-mono">${unit==='ZAK'?fmtNum(segActual):fmtDec(segActual)}</td>
+                    <td class="px-3 md:px-5 py-3 text-right font-black text-white font-mono">${unit==='ZAK'?fmtNum(segSo):fmtDec(segSo)}</td>
+                    <td class="px-3 md:px-5 py-3 text-right font-black text-statusDanger font-mono">${unit==='ZAK'?fmtNum(segShortage):fmtDec(segShortage)}</td>
+                    <td class="px-3 md:px-5 py-3 text-center"><span class="inline-flex px-2 py-1 rounded-lg text-[8px] font-bold bg-statusDanger/10 text-statusDanger border border-statusDanger/20">SHORTAGE</span></td>
+                </tr>`;
+                items.forEach(r => {
+                    const shortage = Math.max(0, -cleanNum(r.gapTon));
+                    html += `<tr class="table-row-hover border-b border-borderMain/40 bg-statusDanger/5">
+                        <td class="px-3 md:px-5 py-3 text-[10px] text-textSecondary">${segment}</td>
+                        <td class="px-3 md:px-5 py-3 font-bold text-white font-mono pl-6 md:pl-8">↳ ${String(r.sku || '-')}</td>
+                        <td class="px-3 md:px-5 py-3 text-right font-mono text-textSecondary">${fmtQty(r.actualTon,r.weightKg)}</td>
+                        <td class="px-3 md:px-5 py-3 text-right font-mono text-white">${fmtQty(r.soTon,r.weightKg)}</td>
+                        <td class="px-3 md:px-5 py-3 text-right font-black text-statusDanger font-mono">${shortage===null?'-':(unit==='ZAK'?fmtNum(shortage):fmtDec(shortage))}</td>
+                        <td class="px-3 md:px-5 py-3 text-center"><span class="inline-flex px-2 py-1 rounded-lg text-[8px] font-bold bg-statusDanger/10 text-statusDanger border border-statusDanger/20">TIDAK CUKUP</span></td>
+                    </tr>`;
+                });
+            });
+            body.innerHTML = html;
+
+            // Detail ALL material Actual VS SO — tetap mengikuti filter Segment/Search.
+            if (allBody) {
+                const allRows = (actualVsSoData || []).filter(r => {
+                    const segment = String(r.segment || 'GENERAL').trim().toUpperCase();
+                    const material = String(r.sku || '').trim();
+                    if (segmentFilter !== 'ALL' && segment !== segmentFilter) return false;
+                    if (q && !(`${segment} ${material}`.toLowerCase().includes(q))) return false;
+                    return true;
+                }).sort((a,b) => {
+                    const sa = String(a.segment || 'GENERAL');
+                    const sb = String(b.segment || 'GENERAL');
+                    return sa.localeCompare(sb) || String(a.sku || '').localeCompare(String(b.sku || ''));
+                });
+
+                const statusLabel = status => ({
+                    SHORTAGE: ['SHORTAGE', 'bg-statusDanger/10 text-statusDanger border-statusDanger/20'],
+                    EXCESS: ['EXCESS', 'bg-statusSuccess/10 text-statusSuccess border-statusSuccess/20'],
+                    MATCH: ['MATCH', 'bg-accentCyan/10 text-accentCyan border-accentCyan/20'],
+                    NO_SO: ['NO SO', 'bg-statusWarning/10 text-statusWarning border-statusWarning/20']
+                }[status] || [status || '-', 'bg-white/5 text-textSecondary border-borderMain']);
+
+                setTxt('avsAllMaterialSummary', `${allRows.length.toLocaleString('id-ID')} material`);
+
+                if (!allRows.length) {
+                    allBody.innerHTML = '<tr><td colspan="6" class="px-4 py-12 text-center text-textSecondary italic">Tidak ada material sesuai filter.</td></tr>';
+                } else {
+                    const groupsAll = {};
+                    allRows.forEach(r => {
+                        const segment = String(r.segment || 'GENERAL').trim().toUpperCase() || 'GENERAL';
+                        if (!groupsAll[segment]) groupsAll[segment] = [];
+                        groupsAll[segment].push(r);
+                    });
+
+                    let allHtml = '';
+                    Object.keys(groupsAll).sort().forEach(segment => {
+                        const items = groupsAll[segment];
+                        const segActual = items.reduce((sum,r)=>sum+(qtyByUnit(r.actualTon,r.weightKg)||0),0);
+                        const segSo = items.reduce((sum,r)=>sum+(qtyByUnit(r.soTon,r.weightKg)||0),0);
+                        const segGap = segActual - segSo;
+                        allHtml += `<tr class="bg-bgCard/70 border-t-2 border-borderMain">
+                            <td class="px-3 md:px-5 py-3 text-accentCyan font-black" colspan="2"><i class="ph-bold ph-folder-open mr-1"></i>${segment} <span class="text-[9px] text-textSecondary ml-2">${items.length} material</span></td>
+                            <td class="px-3 md:px-5 py-3 text-right font-black text-white font-mono">${unit==='ZAK'?fmtNum(segActual):fmtDec(segActual)}</td>
+                            <td class="px-3 md:px-5 py-3 text-right font-black text-white font-mono">${unit==='ZAK'?fmtNum(segSo):fmtDec(segSo)}</td>
+                            <td class="px-3 md:px-5 py-3 text-right font-black ${segGap < -0.01 ? 'text-statusDanger' : segGap > 0.01 ? 'text-statusSuccess' : 'text-accentCyan'} font-mono">${unit==='ZAK'?fmtNum(segGap):fmtDec(segGap)}</td>
+                            <td class="px-3 md:px-5 py-3 text-center"><span class="text-[8px] text-textSecondary">SUMMARY</span></td>
+                        </tr>`;
+                        items.forEach(r => {
+                            const gap = cleanNum(r.gapTon);
+                            const [label, cls] = statusLabel(r.status);
+                            allHtml += `<tr class="table-row-hover border-b border-borderMain/40">
+                                <td class="px-3 md:px-5 py-3 text-[10px] text-textSecondary">${segment}</td>
+                                <td class="px-3 md:px-5 py-3 font-bold text-white font-mono pl-6 md:pl-8">↳ ${String(r.sku || '-')}</td>
+                                <td class="px-3 md:px-5 py-3 text-right font-mono text-white">${fmtQty(r.actualTon,r.weightKg)}</td>
+                                <td class="px-3 md:px-5 py-3 text-right font-mono text-white">${fmtQty(r.soTon,r.weightKg)}</td>
+                                <td class="px-3 md:px-5 py-3 text-right font-black ${cleanNum(r.gapTon) < -0.01 ? 'text-statusDanger' : cleanNum(r.gapTon) > 0.01 ? 'text-statusSuccess' : 'text-accentCyan'} font-mono">${gap===null?'-':(unit==='ZAK'?fmtNum(gap):fmtDec(gap))}</td>
+                                <td class="px-3 md:px-5 py-3 text-center"><span class="inline-flex px-2 py-1 rounded-lg text-[8px] font-bold border ${cls}">${label}</span></td>
+                            </tr>`;
+                        });
+                    });
+                    allBody.innerHTML = allHtml;
+                }
+            }
+        }
+
+        function clearActualVsSoFilters() {
+            const s = document.getElementById('actualVsSoSearch');
+            const v = document.getElementById('actualVsSoSegmentFilter');
+            if (s) s.value = '';
+            if (v) v.value = 'ALL';
+            const u = document.getElementById('actualVsSoUnitFilter');
+            if (u) u.value = 'TON';
+            renderActualVsSo('');
+        }
+
+        function exportActualVsSo() {
+            if (typeof XLSX === 'undefined') { showToast('Export Error', 'Library Excel belum tersedia.', 'error'); return; }
+            const rows = (actualVsSoData || []).filter(r => r.status === 'SHORTAGE' && cleanNum(r.gapTon) < -0.01).map(r => ({
+                'Segment': r.segment || 'GENERAL',
+                'Material / SKU': r.sku,
+                'Actual Stock TON': cleanNum(r.actualTon),
+                'SO TON': cleanNum(r.soTon),
+                'Material Shortage TON': Math.max(0, -cleanNum(r.gapTon)),
+                'Status': 'SHORTAGE'
+            }));
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, 'Actual Stock VS SO');
+            XLSX.writeFile(wb, `Actual_Stock_VS_SO_Material_Shortage_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
         function exportDeliveryRequirement() {
@@ -5972,7 +6149,7 @@ ${JSON.stringify(payload)}`;
             else if(tabName === 'ai-analyst') { pTitle.innerText = 'AI Stock Intelligence Dashboard'; pSub.innerText = 'Comprehensive MTD Finished Goods analysis, visual analytics & executive management insight'; icon.className = 'ph-fill ph-sparkle text-2xl md:text-3xl text-accentPurple'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentPurple/20 to-pink-500/10 border border-accentPurple/30 rounded-xl md:rounded-2xl shadow-glow-purple'; }
             else if(tabName === 'detail') { pTitle.innerText = 'Detail Master Data Stok'; pSub.innerText = 'Rincian Operasional & Master Item'; icon.className = 'ph-fill ph-database text-2xl md:text-3xl text-accentPurple'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentPurple/20 to-accentCyan/10 border border-accentPurple/30 rounded-xl md:rounded-2xl shadow-glow-purple'; }
             else if(tabName === 'summary-only') { pTitle.innerText = 'Ringkasan Stok Overview'; pSub.innerText = 'Tabel Ringkasan Stok Finished Goods'; icon.className = 'ph-fill ph-table text-2xl md:text-3xl text-accentCyan'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentPurple/20 to-accentCyan/10 border border-accentPurple/30 rounded-xl md:rounded-2xl shadow-glow-purple'; }
-            else if(tabName === 'actual-vs-so') { pTitle.innerText = 'Delivery Requirement & Material Shortage'; pSub.innerText = 'Kebutuhan CDD, Tronton, Container per tanggal dan produk yang tidak dapat dikirim karena material shortage'; icon.className = 'ph-fill ph-truck text-2xl md:text-3xl text-accentCyan'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentCyan/20 to-blue-500/10 border border-accentCyan/30 rounded-xl md:rounded-2xl shadow-glow-cyan'; }
+            else if(tabName === 'actual-vs-so') { pTitle.innerText = 'Actual Stok VS SO'; pSub.innerText = 'Material shortage berdasarkan perbandingan Actual FG Stock terhadap Sales Order, dikelompokkan berdasarkan Segment dan Material'; icon.className = 'ph-fill ph-git-compare text-2xl md:text-3xl text-accentCyan'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentCyan/20 to-blue-500/10 border border-accentCyan/30 rounded-xl md:rounded-2xl shadow-glow-cyan'; }
             else if(tabName === 'plan-delivery') { pTitle.innerText = 'Plan Delivery'; pSub.innerText = 'Rencana delivery berdasarkan Tanggal SO kolom AB dan Qty Ton kolom AM'; icon.className = 'ph-fill ph-calendar-check text-2xl md:text-3xl text-accentCyan'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentCyan/20 to-blue-500/10 border border-accentCyan/30 rounded-xl md:rounded-2xl shadow-glow-cyan'; }
             else if(tabName === 'exec-report') { pTitle.innerText = 'Report — Summary'; pSub.innerText = 'Ringkasan laporan eksekutif berdasarkan tanggal dan data transaksi'; icon.className = 'ph-fill ph-table text-2xl md:text-3xl text-statusSuccess'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-statusSuccess/20 to-emerald-600/10 border border-statusSuccess/30 rounded-xl md:rounded-2xl shadow-glow-green'; }
             else if(tabName === 'exec-report-detail') { pTitle.innerText = 'Report — Detail'; pSub.innerText = 'Opening Balance, IN dan OUT per SKU berdasarkan sheet DATA'; icon.className = 'ph-fill ph-list-dashes text-2xl md:text-3xl text-accentPurple'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentPurple/20 to-accentCyan/10 border border-accentPurple/30 rounded-xl md:rounded-2xl shadow-glow-purple'; }
