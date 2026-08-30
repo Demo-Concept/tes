@@ -21,6 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- XLSX Library Bundle (xlsx-js-style) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- PowerPoint Export -->
     <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@latest/dist/pptxgen.bundle.js"></script>
 
@@ -608,6 +609,30 @@
             from { transform: translateX(0); }
             to { transform: translateX(-50%); }
         }
+
+        /* =========================================================
+           WHATSAPP AUTO UPDATE
+           ========================================================= */
+        .wa-auto-card{background:linear-gradient(145deg,rgba(17,28,51,.96),rgba(7,11,20,.92));border:1px solid rgba(0,229,255,.12);border-radius:18px;padding:16px;box-shadow:0 10px 28px rgba(0,0,0,.22)}
+        .wa-auto-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+        .wa-auto-stat{background:rgba(7,11,20,.5);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:11px}
+        .wa-auto-stat span{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#7E89A8;font-weight:800}
+        .wa-auto-stat strong{display:block;margin-top:5px;color:#fff;font:800 13px 'JetBrains Mono',monospace}
+        .wa-auto-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+        .wa-auto-btn{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;padding:8px 11px;border-radius:10px;font-size:10px;font-weight:800;cursor:pointer}
+        .wa-auto-btn:hover{background:rgba(0,229,255,.08);border-color:rgba(0,229,255,.25)}
+        .wa-auto-btn.primary{background:linear-gradient(90deg,#00D084,#00E5FF);color:#07101b;border:0}
+        .wa-auto-btn.danger{color:#FF6B84;border-color:rgba(255,77,109,.18)}
+        .wa-auto-form{display:grid;grid-template-columns:1.2fr 1.2fr .7fr;gap:8px;margin-top:10px}
+        .wa-auto-input{width:100%;background:rgba(7,11,20,.55);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#fff;padding:9px 10px;font-size:10px;outline:none}
+        .wa-auto-input:focus{border-color:rgba(0,229,255,.4)}
+        .wa-auto-note{margin-top:9px;font-size:9px;color:#71809d;line-height:1.5}
+        .wa-auto-status{display:flex;align-items:center;gap:7px;font-size:9px;color:#B8C0D9;margin-top:10px}
+        .wa-auto-dot{width:7px;height:7px;border-radius:50%;background:#FFB800;box-shadow:0 0 10px rgba(255,184,0,.35)}
+        .wa-auto-dot.active{background:#00D084;box-shadow:0 0 10px rgba(0,208,132,.45)}
+        .wa-auto-dot.error{background:#FF4D6D;box-shadow:0 0 10px rgba(255,77,109,.45)}
+        @media(max-width:900px){.wa-auto-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wa-auto-form{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body class="flex h-screen w-full overflow-hidden bg-bgPrimary">
@@ -642,6 +667,13 @@
                         <button id="nav-btn-stock" onclick="handleTabClick('stock')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-accentCyan/20 to-transparent text-accentCyan font-semibold border border-accentCyan/30 shadow-glow-cyan transition-all text-left">
                             <i class="ph-bold ph-squares-four text-xl"></i>
                             <span class="flex-1">Stock Overview</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="nav-btn-whatsapp-auto" onclick="handleTabClick('whatsapp-auto')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-textSecondary hover:text-white hover:bg-white/5 transition-all text-left group">
+                            <i class="ph-bold ph-whatsapp-logo text-xl group-hover:text-statusSuccess transition-colors"></i>
+                            <span class="flex-1">WhatsApp Auto Update</span>
+                            <i class="ph-bold ph-lock-key text-statusWarning private-lock-icon" title="Private Access"></i>
                         </button>
                     </li>
                     <li>
@@ -1090,9 +1122,7 @@
                     </div>
                 </div>
                 <div id="liveTickerAlert" class="hidden px-4 py-2.5 text-[10px] font-bold border-t border-statusDanger/20 bg-statusDanger/10 text-statusDanger"></div>
-            </section>
-
-            <!-- MAIN TAB CONTENT AREA -->
+            </section><!-- MAIN TAB CONTENT AREA -->
             <div id="mainViewContainer" class="w-full">
                 
                 <!-- TAB 1: STOCK MONITORING VIEW -->
@@ -1101,7 +1131,7 @@
                          Full-width table. The former right sidebar is moved
                          below the table; the table header/top controls remain unchanged. -->
                     <div class="w-full">
-                        <div class="glass-panel rounded-2xl flex flex-col overflow-hidden h-[500px] md:h-[620px] border border-borderMain w-full">
+                        <div id="stockReportCapture" class="glass-panel rounded-2xl flex flex-col overflow-hidden h-[500px] md:h-[620px] border border-borderMain w-full">
                             <div class="p-3 md:p-5 border-b border-borderMain bg-bgCard/90 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
                                 <div class="flex items-center gap-2 md:gap-3">
                                     <i class="ph-fill ph-table text-xl md:text-2xl text-accentCyan"></i>
@@ -1177,6 +1207,60 @@
                                     <span id="donutCenterLabel" class="text-[9px] md:text-[10px] text-textSecondary uppercase tracking-widest font-bold mt-1">Perubahan Stok</span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: WHATSAPP AUTO UPDATE -->
+                <div id="view-whatsapp-auto" class="hidden w-full">
+                    <div class="glass-panel rounded-2xl border border-borderMain overflow-hidden w-full">
+                        <div class="p-4 md:p-6 border-b border-borderMain bg-bgCard/90">
+                            <div class="flex items-center gap-3">
+                                <div class="p-3 rounded-xl bg-statusSuccess/10 border border-statusSuccess/20">
+                                    <i class="ph-fill ph-whatsapp-logo text-statusSuccess text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-black text-white text-lg md:text-xl">WhatsApp Auto Update</h3>
+                                    <p class="text-[10px] md:text-xs text-textSecondary mt-1">Automatic screenshot Stock Overview + caption 15 menit setelah update data baru.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 md:p-6">
+<!-- WHATSAPP AUTO UPDATE PANEL -->
+            <section id="whatsappAutoPanel" class="wa-auto-card">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <i class="ph-fill ph-whatsapp-logo text-statusSuccess text-xl"></i>
+                            <h3 class="text-sm md:text-base font-black text-white">WhatsApp Auto Update</h3>
+                            <span class="text-[8px] px-2 py-1 rounded-full bg-statusSuccess/10 border border-statusSuccess/20 text-statusSuccess font-black tracking-widest">AUTO</span>
+                        </div>
+                        <p class="text-[9px] text-textSecondary mt-1">Kirim screenshot Stock Overview + caption otomatis 15 menit setelah update data baru.</p>
+                    </div>
+                    <div class="wa-auto-actions mt-0">
+                        <button id="waAutoTestBtn" class="wa-auto-btn primary" onclick="waAutoSendNow(true)"><i class="ph-bold ph-paper-plane-tilt"></i> Test Send</button>
+                        <button class="wa-auto-btn" onclick="waAutoSendNow(false)"><i class="ph-bold ph-paper-plane"></i> Send Now</button>
+                        <button id="waAutoToggleBtn" class="wa-auto-btn" onclick="waAutoToggle()"><i class="ph-bold ph-toggle-left"></i> Active</button>
+                    </div>
+                </div>
+                <div class="wa-auto-grid mt-3">
+                    <div class="wa-auto-stat"><span>Update Data</span><strong id="waLastUpdateStat">--:-- WIB</strong></div>
+                    <div class="wa-auto-stat"><span>Next Send</span><strong id="waNextSendStat">--:-- WIB</strong></div>
+                    <div class="wa-auto-stat"><span>Countdown</span><strong id="waCountdownStat">--:--</strong></div>
+                    <div class="wa-auto-stat"><span>Last Send</span><strong id="waLastSentStat">Belum ada</strong></div>
+                </div>
+                <div class="wa-auto-form">
+                    <input id="waWebhookUrl" class="wa-auto-input" value="https://lms-wa-stock-report.abihabudin-02.workers.dev/send" placeholder="Cloudflare Worker /send URL" title="Endpoint Worker Fonnte">
+                    <input id="waGroupId" class="wa-auto-input" placeholder="Opsional: override Group ID (kosong = pakai Secret Worker)">
+                    <input id="waDelayMinutes" class="wa-auto-input" type="number" min="1" value="15" placeholder="Delay menit">
+                </div>
+                <div class="wa-auto-form" style="grid-template-columns:1fr 1fr;">
+                    <input id="waCaptionTemplate" class="wa-auto-input" value="Selamat pagi\nBerikut update Stok FG {date}, update terakhir pukul {time} WIB.\nTerima kasih">
+                    <input id="waScreenshotTarget" class="wa-auto-input" value="#stockReportCapture" placeholder="Element screenshot">
+                </div>
+                <div class="wa-auto-status"><span id="waAutoDot" class="wa-auto-dot"></span><span id="waAutoStatusText">Menunggu sinkronisasi data baru...</span></div>
+                <div class="wa-auto-note">Mode otomatis berjalan selama halaman LMS tetap terbuka. Setiap update data baru memulai countdown 15 menit. Screenshot diambil dari tabel Finished Goods Stock Summary dan dikirim ke Cloudflare Worker → Fonnte. Group ID boleh dikosongkan agar Worker memakai Secret <b>WA_GROUP_ID</b>.</div>
+            </section>
                         </div>
                     </div>
                 </div>
@@ -2034,8 +2118,258 @@
             document.getElementById('transStartSum').value = todayStr;
             document.getElementById('transEndSum').value = todayStr;
 
+            waAutoLoadCfg();
+            waAutoLoadSent();
             fetchData();
         });
+
+
+        /* =========================================================
+           WHATSAPP AUTO UPDATE ENGINE
+           ========================================================= */
+        const WA_AUTO_KEY = 'LMS_WA_AUTO_CONFIG_V2';
+        const WA_AUTO_SEEN_KEY = 'LMS_WA_LAST_SEEN_UPDATE_V1';
+        let waAutoTimer = null;
+        let waAutoCountdownTimer = null;
+        let waAutoEnabled = true;
+        let waAutoLastScheduledUpdate = null;
+
+        function waAutoCfg(){
+            return {
+                webhook: (document.getElementById('waWebhookUrl')?.value || 'https://lms-wa-stock-report.abihabudin-02.workers.dev/send').trim(),
+                groupId: (document.getElementById('waGroupId')?.value || '').trim(),
+                delay: Math.max(1, Number(document.getElementById('waDelayMinutes')?.value || 15)),
+                caption: document.getElementById('waCaptionTemplate')?.value || 'Selamat pagi\nBerikut update Stok FG {date}, update terakhir pukul {time} WIB.\nTerima kasih',
+                target: document.getElementById('waScreenshotTarget')?.value || '#stockReportCapture'
+            };
+        }
+
+        function waAutoSaveCfg(){
+            try { localStorage.setItem(WA_AUTO_KEY, JSON.stringify(waAutoCfg())); } catch(e) {}
+        }
+
+        function waAutoLoadCfg(){
+            try {
+                const c = JSON.parse(localStorage.getItem(WA_AUTO_KEY) || '{}');
+                if(c.webhook !== undefined) document.getElementById('waWebhookUrl').value = c.webhook;
+                if(c.groupId !== undefined) document.getElementById('waGroupId').value = c.groupId;
+                if(c.delay !== undefined) document.getElementById('waDelayMinutes').value = c.delay;
+                if(c.caption !== undefined) document.getElementById('waCaptionTemplate').value = c.caption;
+                if(c.target !== undefined) document.getElementById('waScreenshotTarget').value = c.target;
+            } catch(e) {}
+        }
+
+        function waAutoFormatDateTime(){
+            const date = document.getElementById('kpiTimeDisplay')?.innerText || '-- --- ----';
+            const time = document.getElementById('kpiClockDisplay')?.innerText?.replace(/\s*WIB\s*$/,'') || '--:--';
+            return {date,time};
+        }
+
+        function waAutoBuildCaption(isTest=false){
+            const {date,time}=waAutoFormatDateTime();
+            let t=(document.getElementById('waCaptionTemplate')?.value||'').trim();
+            t=t.replaceAll('{date}',date).replaceAll('{time}',time);
+            if(isTest) t='[TEST AUTO UPDATE]\n'+t;
+            return t;
+        }
+
+        function waAutoSetStatus(text,type='wait'){
+            const dot=document.getElementById('waAutoDot');
+            const el=document.getElementById('waAutoStatusText');
+            if(el) el.textContent=text;
+            if(dot) dot.className='wa-auto-dot '+(type==='active'?'active':type==='error'?'error':'');
+        }
+
+        function waAutoPersistSent(ts,token){
+            localStorage.setItem('LMS_WA_LAST_SENT',JSON.stringify({ts,token}));
+            const el=document.getElementById('waLastSentStat');
+            if(el) el.textContent=ts;
+        }
+
+        function waAutoLoadSent(){
+            try{
+                const x=JSON.parse(localStorage.getItem('LMS_WA_LAST_SENT')||'null');
+                if(x?.ts){ const el=document.getElementById('waLastSentStat'); if(el) el.textContent=x.ts; }
+            }catch(e){}
+        }
+
+        function waAutoClearTimers(){
+            if(waAutoTimer) clearTimeout(waAutoTimer);
+            if(waAutoCountdownTimer) clearInterval(waAutoCountdownTimer);
+            waAutoTimer=null;
+            waAutoCountdownTimer=null;
+        }
+
+        function waAutoToggle(){
+            waAutoEnabled=!waAutoEnabled;
+            const b=document.getElementById('waAutoToggleBtn');
+            if(b) b.innerHTML=waAutoEnabled?'<i class="ph-bold ph-toggle-left"></i> Active':'<i class="ph-bold ph-toggle-right"></i> Paused';
+            if(!waAutoEnabled) waAutoClearTimers();
+            waAutoSetStatus(waAutoEnabled?'Menunggu update data baru...':'Auto update dijeda.','wait');
+            if(waAutoEnabled && waAutoLastScheduledUpdate) waAutoScheduleFromLastUpdate();
+        }
+
+        function waAutoScheduleFromLastUpdate(){
+            if(!waAutoEnabled || !waAutoLastScheduledUpdate) return;
+            const delayMs=waAutoCfg().delay*60000;
+            const due=waAutoLastScheduledUpdate.getTime()+delayMs;
+            const wait=Math.max(0,due-Date.now());
+            waAutoClearTimers();
+
+            const nextEl=document.getElementById('waNextSendStat');
+            const countEl=document.getElementById('waCountdownStat');
+            const updEl=document.getElementById('waLastUpdateStat');
+            if(updEl) updEl.textContent=waAutoLastScheduledUpdate.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB';
+            if(nextEl) nextEl.textContent=new Date(due).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB';
+
+            const updateCountdown=()=>{
+                const rem=Math.max(0,due-Date.now());
+                const m=Math.floor(rem/60000), sec=Math.floor((rem%60000)/1000);
+                if(countEl) countEl.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+                if(rem<=0 && waAutoCountdownTimer){ clearInterval(waAutoCountdownTimer); waAutoCountdownTimer=null; }
+            };
+            updateCountdown();
+            waAutoCountdownTimer=setInterval(updateCountdown,1000);
+            waAutoTimer=setTimeout(()=>waAutoSendNow(false),wait);
+            waAutoSetStatus(`Auto send ${new Date(due).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})} WIB.`,'active');
+        }
+
+        async function waAutoCapture(){
+            if(typeof html2canvas!=='function') throw new Error('html2canvas belum tersedia.');
+            const selector=waAutoCfg().target;
+            const target=document.querySelector(selector);
+            if(!target) throw new Error('Element screenshot tidak ditemukan: '+selector);
+
+            // Target berada di Stock Overview yang biasanya tersembunyi saat
+            // menu WhatsApp Auto Update sedang dibuka. Buka sementara untuk capture.
+            const hiddenAncestors=[];
+            let node=target;
+            while(node){
+                if(node.classList?.contains('hidden')){
+                    hiddenAncestors.push(node);
+                    node.classList.remove('hidden');
+                }
+                node=node.parentElement;
+            }
+
+            try{
+                await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+                const canvas=await html2canvas(target,{
+                    backgroundColor:'#070B14',
+                    scale:1.2,
+                    useCORS:true,
+                    logging:false,
+                    scrollX:0,
+                    scrollY:0,
+                    windowWidth:Math.max(document.documentElement.clientWidth, target.scrollWidth || 0)
+                });
+                // JPEG lebih ringan untuk pengiriman WhatsApp/Fonnte.
+                return canvas.toDataURL('image/jpeg',0.86);
+            } finally {
+                hiddenAncestors.reverse().forEach(el=>el.classList.add('hidden'));
+            }
+        }
+
+        async function waAutoSendNow(isTest=false){
+            waAutoSaveCfg();
+            const cfg=waAutoCfg();
+            if(!cfg.webhook){showToast('WhatsApp','Isi Webhook URL terlebih dahulu.','warning');return;}
+
+            waAutoClearTimers();
+            waAutoSetStatus('Membuat screenshot Stock Overview...','active');
+
+            try{
+                const imageBase64=await waAutoCapture();
+                const {date,time}=waAutoFormatDateTime();
+                const payload={
+                    source:'LMS Stock Monitoring',
+                    target:cfg.groupId || undefined,
+                    message:waAutoBuildCaption(isTest),
+                    imageBase64,
+                    filename:'FG-Stock-Update.jpg',
+                    dataDate:date,
+                    dataTime:time,
+                    sentAt:new Date().toISOString(),
+                    test:isTest
+                };
+
+                waAutoSetStatus('Mengirim screenshot + caption ke Fonnte...','active');
+                const res=await fetch(cfg.webhook,{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify(payload)
+                });
+                const raw=await res.text();
+                let data={};
+                try{data=raw?JSON.parse(raw):{};}catch(e){data={raw};}
+                if(!res.ok || data.success===false){
+                    throw new Error(data.error||data.message||`HTTP ${res.status}`);
+                }
+
+                const nowLabel=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB';
+                const token=waAutoLastScheduledUpdate?waAutoLastScheduledUpdate.toISOString():null;
+                waAutoPersistSent(nowLabel,token);
+                if(waAutoLastScheduledUpdate){
+                    localStorage.setItem(WA_AUTO_SEEN_KEY,waAutoLastScheduledUpdate.toISOString());
+                }
+                waAutoSetStatus(isTest?'Test WhatsApp + screenshot berhasil dikirim.':'WhatsApp + screenshot berhasil dikirim.','active');
+                showToast('WhatsApp','Screenshot dan caption berhasil dikirim.','success');
+            }catch(err){
+                console.error('WhatsApp Auto Update:',err);
+                waAutoSetStatus('Gagal: '+String(err.message||err),'error');
+                showToast('WhatsApp Error',String(err.message||err).slice(0,180),'error');
+            } finally {
+                if(!isTest){
+                    const nextEl=document.getElementById('waNextSendStat');
+                    const countEl=document.getElementById('waCountdownStat');
+                    if(nextEl) nextEl.textContent='Menunggu update baru';
+                    if(countEl) countEl.textContent='--:--';
+                }
+            }
+        }
+
+        function waAutoOnDataUpdated(dateStr,timeStr){
+            if(!timeStr || timeStr==='--:--') return;
+
+            // Parse robustly from the displayed dashboard timestamp.
+            let d=new Date(`${dateStr} ${timeStr}`);
+            if(isNaN(d.getTime())){
+                const now=new Date();
+                const m=/^(\d{2}):(\d{2})$/.exec(timeStr.trim());
+                if(m){ d=new Date(now.getFullYear(),now.getMonth(),now.getDate(),Number(m[1]),Number(m[2]),0,0); }
+            }
+            if(isNaN(d.getTime())) return;
+
+            const token=d.toISOString();
+            const seen=localStorage.getItem(WA_AUTO_SEEN_KEY);
+
+            // First load only establishes the current update as the baseline.
+            // Auto send starts on the next genuinely new data timestamp.
+            if(!seen){
+                localStorage.setItem(WA_AUTO_SEEN_KEY,token);
+                const updEl=document.getElementById('waLastUpdateStat');
+                if(updEl) updEl.textContent=d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB';
+                waAutoSetStatus('Sinkronisasi aktif. Menunggu update data berikutnya...','wait');
+                return;
+            }
+
+            if(seen===token){
+                const updEl=document.getElementById('waLastUpdateStat');
+                if(updEl) updEl.textContent=d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB';
+                return;
+            }
+
+            waAutoLastScheduledUpdate=d;
+            localStorage.setItem(WA_AUTO_SEEN_KEY,token);
+
+            const sent=JSON.parse(localStorage.getItem('LMS_WA_LAST_SENT')||'null');
+            if(sent?.token===token){
+                waAutoSetStatus('Update ini sudah dikirim. Menunggu update berikutnya.','wait');
+                return;
+            }
+
+            waAutoScheduleFromLastUpdate();
+        }
 
         function updateClock() {
             const now = new Date();
@@ -2052,6 +2386,7 @@
             document.getElementById('tableSubtitle').innerText = subtitleText;
             if(document.getElementById('tableSubtitleOnly')) document.getElementById('tableSubtitleOnly').innerText = subtitleText;
             document.getElementById('syncTimestamp').innerText = `Data Time: ${lastUpdateTimeStr} WIB`;
+            try { waAutoOnDataUpdated(lastUpdateDateStr,lastUpdateTimeStr); } catch(e) { console.warn('WA Auto scheduler:',e); }
         }
 
         function showToast(title, msg, type = 'success') {
@@ -2463,11 +2798,16 @@
             };
 
             /*
-             * SINGLE DATE RULE FOR ALL EXECUTIVE REPORTS:
-             * DATA column B (index 1) is ALWAYS the transaction Date.
-             * Report > Summary and Report > Detail must use this same field.
+             * DATA DATE/TIMESTAMP RULE:
+             * DATA column A (index 0) = timestamp/update time.
+             * DATA column B (index 1) = transaction date.
+             *
+             * IMPORTANT:
+             * - Update Terakhir MUST use the newest timestamp from column A.
+             * - Transaction/report date MUST continue using column B.
              */
-            let idxDate = 1; // ALWAYS DATA column B = Date. Do not auto-detect another date column.
+            const idxTimestamp = 0; // DATA column A = timestamp update
+            const idxDate = 1;      // DATA column B = transaction date
 
             let idxSegment = findHeaderIndex(['segment', 'segmen']);
             let idxType = findHeaderIndex(['type', 'tipe', 'jenis transaksi', 'transaction type']);
@@ -2498,22 +2838,30 @@
             transactionRawData.rows = validTransRows;
 
             validTransRows.forEach(r => {
-                const rowTimestamp = r[idxDate] !== undefined ? r[idxDate] : '';
+                // Column A = timestamp/update time.
+                // Column B = transaction date.
+                const rowTimestamp = r[idxTimestamp] !== undefined ? r[idxTimestamp] : '';
+                const rowTransactionDate = r[idxDate] !== undefined ? r[idxDate] : '';
                 const rowSeg = r[idxSegment] || 'GENERAL';
                 const rowType = r[idxType] || 'STANDARD';
                 const rowProd = r[idxProduk] || '-';
                 const rowProjDel = r[idxProjectDelivery] || '-';
 
+                // Keep transaction date for transaction/report calculations.
                 let trDateObj = new Date(NaN);
-                if (String(rowTimestamp).trim()) {
-                    trDateObj = parseReportDate(rowTimestamp);
-                    if (!isNaN(trDateObj.getTime()) && trDateObj.getFullYear() > 2000) {
-                        if (trDateObj > latestDateObj) {
-                            latestDateObj = trDateObj;
-                            foundValidDate = true;
-                        }
-                    } else {
+                if (String(rowTransactionDate).trim()) {
+                    trDateObj = parseReportDate(rowTransactionDate);
+                    if (isNaN(trDateObj.getTime()) || trDateObj.getFullYear() <= 2000) {
                         trDateObj = new Date(NaN);
+                    }
+                }
+
+                // Update Terakhir MUST come from the newest timestamp in column A.
+                const timestampObj = String(rowTimestamp).trim() ? parseReportDate(rowTimestamp) : new Date(NaN);
+                if (!isNaN(timestampObj.getTime()) && timestampObj.getFullYear() > 2000) {
+                    if (timestampObj > latestDateObj) {
+                        latestDateObj = timestampObj;
+                        foundValidDate = true;
                     }
                 }
 
@@ -2524,7 +2872,7 @@
                 }
 
                 transactionRecords.push({
-                    rawDate: String(rowTimestamp || '').trim() || '-',
+                    rawDate: String(rowTransactionDate || '').trim() || '-',
                     dateObj: trDateObj,
                     segment: String(rowSeg || 'GENERAL').trim(),
                     type: String(rowType || 'STANDARD').trim(),
@@ -6616,7 +6964,7 @@ ${JSON.stringify(payload)}`;
 
         // Semua menu selain Stock Overview wajib login.
         const LOCKED_TABS = [
-            'ai-analyst', 'detail', 'summary-only', 'actual-vs-so', 'plan-delivery',
+            'ai-analyst', 'whatsapp-auto', 'detail', 'summary-only', 'actual-vs-so', 'plan-delivery',
             'exec-report', 'exec-report-detail', 'offtake', 'pallet',
             'trans-detail', 'trans-summary', 'stok-sig'
         ];
@@ -6682,19 +7030,19 @@ ${JSON.stringify(payload)}`;
             activeMainTab = tabName;
             const kpiContainer = document.getElementById('kpiContainer'), actionControls = document.getElementById('generalActionControls');
             
-            if (['detail', 'summary-only', 'actual-vs-so', 'plan-delivery', 'offtake', 'pallet', 'exec-report', 'exec-report-detail', 'trans-detail', 'trans-summary', 'stok-sig', 'ai-analyst'].includes(tabName)) { 
+            if (['detail', 'summary-only', 'actual-vs-so', 'plan-delivery', 'offtake', 'pallet', 'exec-report', 'exec-report-detail', 'trans-detail', 'trans-summary', 'stok-sig', 'ai-analyst', 'whatsapp-auto'].includes(tabName)) { 
                 if(kpiContainer) kpiContainer.classList.add('hidden'); 
             } else { 
                 if(kpiContainer) kpiContainer.classList.remove('hidden'); 
             }
             
-            if(['actual-vs-so', 'plan-delivery', 'exec-report', 'exec-report-detail', 'trans-detail', 'trans-summary', 'stok-sig'].includes(tabName)) { 
+            if(['actual-vs-so', 'plan-delivery', 'exec-report', 'exec-report-detail', 'trans-detail', 'trans-summary', 'stok-sig', 'whatsapp-auto'].includes(tabName)) { 
                 if(actionControls) actionControls.classList.add('hidden'); 
             } else { 
                 if(actionControls) actionControls.classList.remove('hidden'); 
             }
             
-            const allTabs = ['stock', 'ai-analyst', 'detail', 'summary-only', 'actual-vs-so', 'plan-delivery', 'exec-report', 'exec-report-detail', 'offtake', 'pallet', 'trans-detail', 'trans-summary', 'stok-sig'];
+            const allTabs = ['stock', 'ai-analyst', 'detail', 'summary-only', 'actual-vs-so', 'plan-delivery', 'exec-report', 'exec-report-detail', 'offtake', 'pallet', 'trans-detail', 'trans-summary', 'stok-sig', 'whatsapp-auto'];
             allTabs.forEach(t => {
                 const view = document.getElementById(`view-${t}`), btn = document.getElementById(`nav-btn-${t}`);
                 if(t === tabName) {
@@ -6734,6 +7082,7 @@ ${JSON.stringify(payload)}`;
 
             const pTitle = document.getElementById('pageTitle'), pSub = document.getElementById('pageSubTitle'), icon = document.getElementById('pageTitleIcon'), iconContainer = document.getElementById('pageTitleIconContainer');
             if(tabName === 'stock') { pTitle.innerText = 'Finished Goods Stock Overview'; pSub.innerText = 'Real-time FG Analytics & Stock Monitoring Report'; icon.className = 'ph-fill ph-chart-polar text-2xl md:text-3xl text-accentCyan'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentPurple/20 to-accentCyan/10 border border-accentPurple/30 rounded-xl md:rounded-2xl shadow-glow-purple'; }
+            else if(tabName === 'whatsapp-auto') { pTitle.innerText = 'WhatsApp Auto Update'; pSub.innerText = 'Automatic WhatsApp Group notification with Stock Overview screenshot'; icon.className = 'ph-fill ph-whatsapp-logo text-2xl md:text-3xl text-statusSuccess'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-statusSuccess/20 to-emerald-600/10 border border-statusSuccess/30 rounded-xl md:rounded-2xl shadow-glow-green'; }
             else if(tabName === 'ai-analyst') { pTitle.innerText = 'AI Stock Intelligence Dashboard'; pSub.innerText = 'Comprehensive MTD Finished Goods analysis, visual analytics & executive management insight'; icon.className = 'ph-fill ph-sparkle text-2xl md:text-3xl text-accentPurple'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentPurple/20 to-pink-500/10 border border-accentPurple/30 rounded-xl md:rounded-2xl shadow-glow-purple'; }
             else if(tabName === 'detail') { pTitle.innerText = 'Detail Master Data Stok'; pSub.innerText = 'Rincian Operasional & Master Item'; icon.className = 'ph-fill ph-database text-2xl md:text-3xl text-accentPurple'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentPurple/20 to-accentCyan/10 border border-accentPurple/30 rounded-xl md:rounded-2xl shadow-glow-purple'; }
             else if(tabName === 'summary-only') { pTitle.innerText = 'Ringkasan Stok Overview'; pSub.innerText = 'Tabel Ringkasan Stok Finished Goods'; icon.className = 'ph-fill ph-table text-2xl md:text-3xl text-accentCyan'; iconContainer.className = 'p-2.5 md:p-3.5 bg-gradient-to-br from-accentPurple/20 to-accentCyan/10 border border-accentPurple/30 rounded-xl md:rounded-2xl shadow-glow-purple'; }
@@ -7332,8 +7681,4 @@ ${JSON.stringify(payload)}`;
     });
     </script>
 </body>
-</html            updateLiveStockTicker();
->
-<script>
-setInterval(()=>{ try{ if(typeof updateLiveStockTicker==='function') updateLiveStockTicker(); }catch(e){} }, 60000);
-</script>
+</html>
